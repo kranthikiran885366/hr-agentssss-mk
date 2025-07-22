@@ -1,42 +1,42 @@
 """
-Application configuration
+Configuration settings for HR Agent System
 """
 
 import os
-from functools import lru_cache
-from pydantic import BaseSettings
-from pydantic import AnyHttpUrl, validator
-from typing import List, Optional, Dict, Any, Union
-from dotenv import load_dotenv
-
-# Load environment variables from .env file if it exists
-load_dotenv()
+from pydantic_settings import BaseSettings
+from typing import Optional
 
 class Settings(BaseSettings):
-    # Database
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "postgresql://postgres:postgres@localhost:5432/hrsystem"
-    )
+    # Database settings
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./hr_system.db")
     MONGO_URL: str = os.getenv("MONGO_URL", "mongodb://localhost:27017")
-    MONGO_DB_NAME: str = os.getenv("MONGO_DB_NAME", "hrsystem")
 
     # API Keys
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "sk-fake-key")
+    OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
+    ANTHROPIC_API_KEY: Optional[str] = os.getenv("ANTHROPIC_API_KEY")
+    GROQ_API_KEY: Optional[str] = os.getenv("GROQ_API_KEY")
+
+    # Communication APIs
+    TWILIO_ACCOUNT_SID: Optional[str] = os.getenv("TWILIO_ACCOUNT_SID")
+    TWILIO_AUTH_TOKEN: Optional[str] = os.getenv("TWILIO_AUTH_TOKEN")
+    SENDGRID_API_KEY: Optional[str] = os.getenv("SENDGRID_API_KEY")
 
     # Security
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-here")
-    ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    # Application
-    DEBUG: bool = os.getenv("DEBUG", "True").lower() in ("true", "1", "t")
-    APP_NAME: str = os.getenv("PROJECT_NAME", "HR Agent System")
-    VERSION: str = os.getenv("VERSION", "1.0.0")
-    API_V1_STR: str = os.getenv("API_V1_STR", "/api/v1")
+    # Application settings
+    DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
+    HOST: str = "0.0.0.0"
+    PORT: int = int(os.getenv("PORT", "8000"))
+
+    # File storage
+    UPLOAD_DIR: str = "uploads"
+    MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
 
     # CORS
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = [
+    BACKEND_CORS_ORIGINS: list[str] = [
         "http://localhost:3000",  # Default Next.js dev server
         "http://localhost:8000",  # Default FastAPI dev server
     ]
@@ -54,37 +54,24 @@ class Settings(BaseSettings):
     PERFORMANCE_REVIEW_CYCLE_DAYS: int = 90  # Default to quarterly reviews
     GOAL_CHECKIN_REMINDER_DAYS: int = 7  # Remind to check in on goals weekly
 
-    # File Storage
-    UPLOAD_FOLDER: str = "./uploads"
-    MAX_CONTENT_LENGTH: int = 16 * 1024 * 1024  # 16MB max upload size
-
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
     # Auto-approval and auto-hiring config
-    AUTO_APPROVE_DEPARTMENTS: list = ["Engineering", "Product"]
+    AUTO_APPROVE_DEPARTMENTS: list[str] = ["Engineering", "Product"]
     AUTO_APPROVE_BUDGET_LIMIT: int = 100000
     AUTO_HIRE_MATCH_SCORE: int = 90
     REQUIRE_HUMAN_APPROVAL_FOR_FINAL_OFFER: bool = True
 
     class Config:
-        case_sensitive = True
         env_file = ".env"
+        case_sensitive = True
 
-    @validator("BACKEND_CORS_ORIGINS", pre=True)
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
-            return v
-        raise ValueError(v)
-
-@lru_cache()
-def get_settings():
+def get_settings() -> Settings:
     return Settings()
 
 settings = get_settings()
 
 # Create uploads directory if it doesn't exist
-os.makedirs(settings.UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
