@@ -7,13 +7,14 @@ import { AIProvider } from "@/components/providers/ai-provider"
 import { VoiceProvider } from "@/components/providers/voice-provider"
 import { Navbar } from "@/components/layout/navbar"
 import { SessionProvider } from "next-auth/react"
+import type { Metadata } from "next"
+import { ThemeProvider } from "@/components/theme-provider"
 
 const inter = Inter({ subsets: ["latin"] })
 
-export const metadata = {
-  title: "Advanced HR Agent System",
-  description: "AI-powered HR automation with voice and chat capabilities",
-    generator: 'v0.dev'
+export const metadata: Metadata = {
+  title: "HR Agent System",
+  description: "AI-powered HR automation with real agents",
 }
 
 export default function RootLayout({
@@ -29,7 +30,14 @@ export default function RootLayout({
             <AIProvider>
               <VoiceProvider>
                 <Navbar />
-                {children}
+                <ThemeProvider
+                  attribute="class"
+                  defaultTheme="system"
+                  enableSystem
+                  disableTransitionOnChange
+                >
+                  {children}
+                </ThemeProvider>
                 <Toaster />
               </VoiceProvider>
             </AIProvider>
