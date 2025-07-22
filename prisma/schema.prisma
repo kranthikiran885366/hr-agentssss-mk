@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model representing employees and HR personnel
+model User {
+  id            String    @id @default(uuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+  role          UserRole  @default(USER)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  managedTeam   TeamMember[] @relation("TeamManager")
+  teamMembers   TeamMember[] @relation("TeamMember")
+  
+  // Training needs
+  trainingNeeds TrainingNeedsAnalysis[]
+  
+  @@map("users")
+}
+
+// Team member relationship
+model TeamMember {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  managerId String   @map("manager_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  user      User     @relation("TeamMember", fields: [userId], references: [id], onDelete: Cascade)
+  manager   User     @relation("TeamManager", fields: [managerId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, managerId])
+  @@map("team_members")
+}
+
+// Skills model
+model Skill {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  category    String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  trainingNeeds TrainingNeedsSkill[]
+  
+  @@map("skills")
+}
+
+// Training Needs Analysis
+model TrainingNeedsAnalysis {
+  id          String   @id @default(uuid())
+  employeeId  String   @map("employee_id")
+  createdById String   @map("created_by_id")
+  status      TrainingNeedsStatus @default(DRAFT)
+  deadline    DateTime?
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  employee   User                  @relation("EmployeeTrainingNeeds", fields: [employeeId], references: [id])
+  createdBy  User                  @relation("CreatedTrainingNeeds", fields: [createdById], references: [id])
+  skills     TrainingNeedsSkill[]
+  
+  @@map("training_needs_analyses")
+}
+
+// Training Needs Skills (many-to-many with additional fields)
+model TrainingNeedsSkill {
+  id                   String              @id @default(uuid())
+  trainingNeedsId      String              @map("training_needs_id")
+  skillId              String              @map("skill_id")
+  currentLevel         Int                 @map("current_level") @default(1)
+  targetLevel          Int                 @map("target_level")
+  priority             TrainingPriority    @default(MEDIUM)
+  gap                  Int                 @default(0) @map("gap")
+  recommendedTraining  String?             @map("recommended_training")
+  notes                String?             @map("notes")
+  
+  // Relations
+  trainingNeeds TrainingNeedsAnalysis @relation(fields: [trainingNeedsId], references: [id], onDelete: Cascade)
+  skill         Skill                @relation(fields: [skillId], references: [id])
+  
+  @@unique([trainingNeedsId, skillId])
+  @@map("training_needs_skills")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  HR
+  MANAGER
+  USER
+}
+
+enum TrainingNeedsStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TrainingPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
