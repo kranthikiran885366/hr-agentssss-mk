@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { HRDashboard } from "@/components/hr-dashboard/HRDashboard"
+import { DynamicHROrchestrator } from "@/components/hr-system/dynamic-hr-orchestrator"
 import { useAuth } from "@/components/providers/auth-provider"
 import {
   Bot,
@@ -184,7 +183,7 @@ export default function HomePage() {
   }
 
   if (showDashboard) {
-    return <HRDashboard />
+    return <DynamicHROrchestrator />
   }
 
   return (
@@ -196,11 +195,11 @@ export default function HomePage() {
             <CheckCircle className="h-4 w-4 mr-2" />
             System Status: All {stats.totalFunctionalities} Functions Active
           </div>
-          
+
           <h1 className="text-5xl font-bold text-gray-900 mb-6">
             Complete AI-Powered HR System
           </h1>
-          
+
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
             Fully automated HR operations from hiring to exit with real-time AI agents, 
             advanced analytics, and seamless integration across all HR functions.
