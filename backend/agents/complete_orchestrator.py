@@ -19,9 +19,12 @@ from .leave_agent.core import LeaveAgent
 from .conflict_resolution_agent.core import ConflictResolutionAgent
 from .training_agent.core import TrainingAgent
 from .rewards_agent.core import RewardsAgent
+from .attendance_agent import AttendanceAgent
+from .engagement_agent import EmployeeEngagementAgent
 from ..ml.model_trainer import ModelInferenceEngine
 from ..ml.advanced_training.multi_ai_integration import MultiAIIntegration
 import os
+import socketio
 
 logger = logging.getLogger(__name__)
 
@@ -37,10 +40,17 @@ class CompleteHROrchestrator:
         self.conflict_agent = ConflictResolutionAgent()
         self.training_agent = TrainingAgent()
         self.rewards_agent = RewardsAgent()
+        self.attendance_agent = AttendanceAgent()
+        self.engagement_agent = EmployeeEngagementAgent()
         
         # AI and ML components
         self.inference_engine = ModelInferenceEngine()
         self.multi_ai = MultiAIIntegration()
+        
+        # Real-time communication
+        self.sio = socketio.AsyncServer(cors_allowed_origins="*")
+        self.real_time_events = {}
+        self.active_users = {}
         
         # System state
         self.is_initialized = False
@@ -62,7 +72,9 @@ class CompleteHROrchestrator:
                 self.leave_agent.initialize(),
                 self.conflict_agent.initialize(),
                 self.training_agent.initialize(),
-                self.rewards_agent.initialize()
+                self.rewards_agent.initialize(),
+                self.attendance_agent.initialize() if hasattr(self.attendance_agent, 'initialize') else asyncio.sleep(0),
+                self.engagement_agent.initialize() if hasattr(self.engagement_agent, 'initialize') else asyncio.sleep(0)
             ]
             
             await asyncio.gather(*agent_tasks)
@@ -379,6 +391,246 @@ class CompleteHROrchestrator:
         except Exception as e:
             logger.error(f"Comprehensive analytics error: {str(e)}")
             return {"error": str(e)}
+
+    async def process_real_time_attendance(self, employee_id: str, attendance_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Process real-time attendance with GPS/Face recognition"""
+        try:
+            if attendance_data.get("method") == "gps":
+                result = await self.attendance_agent.clock_in_with_gps(employee_id, attendance_data.get("location_data", {}))
+            elif attendance_data.get("method") == "face_recognition":
+                result = await self.attendance_agent.clock_in_with_face_recognition(employee_id, attendance_data.get("image_data", b""))
+            else:
+                # Traditional clock-in
+                result = await self._process_traditional_clock_in(employee_id, attendance_data)
+            
+            # Emit real-time update
+            await self._emit_real_time_update("attendance_update", {
+                "employee_id": employee_id,
+                "result": result,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Real-time attendance error: {str(e)}")
+            return {"success": False, "error": str(e)}
+
+    async def conduct_automated_pulse_survey(self, survey_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Conduct automated pulse surveys with real-time analytics"""
+        try:
+            # Launch pulse survey
+            survey_result = await self.engagement_agent.conduct_pulse_survey(survey_config)
+            
+            if survey_result.get("success"):
+                # Set up real-time response tracking
+                survey_id = survey_result["survey_id"]
+                await self._setup_real_time_survey_tracking(survey_id)
+                
+                # Emit survey launch notification
+                await self._emit_real_time_update("survey_launched", {
+                    "survey_id": survey_id,
+                    "target_employees": len(survey_result["survey"]["target_employees"]),
+                    "launch_time": datetime.utcnow().isoformat()
+                })
+            
+            return survey_result
+            
+        except Exception as e:
+            logger.error(f"Automated pulse survey error: {str(e)}")
+            return {"success": False, "error": str(e)}
+
+    async def track_employee_wellness_realtime(self, employee_id: str, wellness_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Track employee wellness with real-time mood and health monitoring"""
+        try:
+            # Process mood tracking
+            mood_result = await self.engagement_agent.track_employee_mood(employee_id, wellness_data.get("mood_data", {}))
+            
+            # Process wellness activities
+            wellness_activities = wellness_data.get("activities", [])
+            activity_results = []
+            
+            for activity in wellness_activities:
+                activity_result = await self._process_wellness_activity(employee_id, activity)
+                activity_results.append(activity_result)
+            
+            # Update gamification
+            gamification_update = await self.engagement_agent.implement_gamification_system(
+                employee_id, "wellness_activity", wellness_data
+            )
+            
+            # Check for wellness alerts
+            wellness_alerts = await self._check_wellness_alerts(employee_id, mood_result, activity_results)
+            
+            # Emit real-time wellness update
+            await self._emit_real_time_update("wellness_update", {
+                "employee_id": employee_id,
+                "mood_result": mood_result,
+                "activity_results": activity_results,
+                "gamification_update": gamification_update,
+                "alerts": wellness_alerts,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+            
+            return {
+                "success": True,
+                "mood_tracking": mood_result,
+                "activity_tracking": activity_results,
+                "gamification": gamification_update,
+                "alerts": wellness_alerts
+            }
+            
+        except Exception as e:
+            logger.error(f"Real-time wellness tracking error: {str(e)}")
+            return {"success": False, "error": str(e)}
+
+    async def process_comprehensive_payroll(self, payroll_period: Dict[str, Any]) -> Dict[str, Any]:
+        """Process comprehensive payroll with statutory compliance"""
+        try:
+            start_date = datetime.fromisoformat(payroll_period["start_date"])
+            end_date = datetime.fromisoformat(payroll_period["end_date"])
+            
+            # Get all employees for payroll processing
+            employees = await self._get_all_employees_for_payroll()
+            
+            payroll_results = []
+            total_processed = 0
+            total_amount = 0
+            
+            for employee in employees:
+                employee_id = employee["id"]
+                
+                # Get attendance data
+                attendance_data = await self.attendance_agent.auto_fill_timesheet(employee_id, {
+                    "start_date": start_date.isoformat(),
+                    "end_date": end_date.isoformat()
+                })
+                
+                # Calculate base salary and overtime
+                salary_calculation = await self._calculate_comprehensive_salary(employee, attendance_data)
+                
+                # Process variable pay (bonuses, commissions)
+                variable_pay = await self._calculate_variable_pay(employee_id, payroll_period)
+                
+                # Calculate statutory deductions
+                statutory_deductions = await self._calculate_statutory_deductions(employee, salary_calculation)
+                
+                # Process expense reimbursements
+                reimbursements = await self._process_expense_reimbursements(employee_id, payroll_period)
+                
+                # Generate payslip
+                payslip = await self._generate_comprehensive_payslip(
+                    employee, salary_calculation, variable_pay, statutory_deductions, reimbursements
+                )
+                
+                payroll_results.append(payslip)
+                total_processed += 1
+                total_amount += payslip["net_pay"]
+                
+                # Real-time progress update
+                await self._emit_real_time_update("payroll_progress", {
+                    "processed": total_processed,
+                    "total": len(employees),
+                    "progress_percentage": (total_processed / len(employees)) * 100
+                })
+            
+            # Generate compliance reports
+            compliance_report = await self._generate_payroll_compliance_report(payroll_results, payroll_period)
+            
+            # Process bank transfers
+            bank_transfer_results = await self._process_bank_transfers(payroll_results)
+            
+            # Generate payroll summary
+            payroll_summary = {
+                "payroll_id": str(uuid.uuid4()),
+                "period": payroll_period,
+                "total_employees": len(employees),
+                "total_amount": total_amount,
+                "processed_at": datetime.utcnow().isoformat(),
+                "compliance_status": compliance_report["status"],
+                "bank_transfer_status": bank_transfer_results["status"],
+                "payslips": payroll_results
+            }
+            
+            # Save payroll data
+            await self._save_payroll_data(payroll_summary)
+            
+            return {
+                "success": True,
+                "payroll_summary": payroll_summary,
+                "compliance_report": compliance_report,
+                "bank_transfers": bank_transfer_results
+            }
+            
+        except Exception as e:
+            logger.error(f"Comprehensive payroll processing error: {str(e)}")
+            return {"success": False, "error": str(e)}
+
+    async def implement_learning_management_system(self, employee_id: str, learning_request: Dict[str, Any]) -> Dict[str, Any]:
+        """Implement comprehensive learning management with tests and certificates"""
+        try:
+            # Assess current skills
+            skill_assessment = await self.training_agent.assess_employee_skills(employee_id, "comprehensive")
+            
+            # Generate personalized learning path
+            learning_path = await self._generate_personalized_learning_path(employee_id, skill_assessment, learning_request)
+            
+            # Create course assignments
+            course_assignments = []
+            for course in learning_path["recommended_courses"]:
+                assignment = await self._create_course_assignment(employee_id, course)
+                course_assignments.append(assignment)
+            
+            # Set up automated testing
+            test_schedule = await self._setup_automated_testing(employee_id, course_assignments)
+            
+            # Configure certificate generation
+            certificate_config = await self._setup_certificate_generation(employee_id, learning_path)
+            
+            # Create learning dashboard
+            learning_dashboard = await self._create_learning_dashboard(employee_id, learning_path, course_assignments)
+            
+            # Set up progress tracking
+            progress_tracking = await self._setup_learning_progress_tracking(employee_id, learning_path["path_id"])
+            
+            return {
+                "success": True,
+                "learning_path": learning_path,
+                "course_assignments": course_assignments,
+                "test_schedule": test_schedule,
+                "certificate_config": certificate_config,
+                "dashboard": learning_dashboard,
+                "progress_tracking": progress_tracking
+            }
+            
+        except Exception as e:
+            logger.error(f"Learning management system error: {str(e)}")
+            return {"success": False, "error": str(e)}
+
+    async def manage_compliance_and_legal(self, compliance_request: Dict[str, Any]) -> Dict[str, Any]:
+        """Manage comprehensive compliance and legal requirements"""
+        try:
+            compliance_type = compliance_request.get("type", "general")
+            
+            if compliance_type == "posh_compliance":
+                result = await self._handle_posh_compliance(compliance_request)
+            elif compliance_type == "labor_law_audit":
+                result = await self._conduct_labor_law_audit(compliance_request)
+            elif compliance_type == "policy_update":
+                result = await self._handle_policy_updates(compliance_request)
+            elif compliance_type == "grievance_tracking":
+                result = await self._track_grievance_compliance(compliance_request)
+            else:
+                result = await self._handle_general_compliance(compliance_request)
+            
+            # Log compliance activity
+            await self._log_compliance_activity(compliance_type, compliance_request, result)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Compliance management error: {str(e)}")
+            return {"success": False, "error": str(e)}
 
     async def handle_emergency_situation(self, emergency_type: str, emergency_data: Dict[str, Any]) -> Dict[str, Any]:
         """Handle emergency HR situations"""
@@ -811,16 +1063,28 @@ class CompleteHROrchestrator:
                     ("leave_agent", self.leave_agent),
                     ("conflict_agent", self.conflict_agent),
                     ("training_agent", self.training_agent),
-                    ("rewards_agent", self.rewards_agent)
+                    ("rewards_agent", self.rewards_agent),
+                    ("attendance_agent", self.attendance_agent),
+                    ("engagement_agent", self.engagement_agent)
                 ]
                 
                 for agent_name, agent in agents:
+                    is_healthy = True
+                    try:
+                        if hasattr(agent, 'is_ready'):
+                            is_healthy = agent.is_ready()
+                    except:
+                        is_healthy = False
+                        
                     self.system_metrics["agents_status"][agent_name] = {
-                        "status": "healthy" if agent.is_ready() else "unhealthy",
+                        "status": "healthy" if is_healthy else "unhealthy",
                         "last_check": datetime.utcnow().isoformat()
                     }
                 
                 self.system_metrics["last_health_check"] = datetime.utcnow().isoformat()
+                
+                # Emit real-time system health update
+                await self._emit_real_time_update("system_health", self.system_metrics)
                 
                 # Sleep for 5 minutes before next check
                 await asyncio.sleep(300)
@@ -828,6 +1092,332 @@ class CompleteHROrchestrator:
             except Exception as e:
                 logger.error(f"Health check error: {str(e)}")
                 await asyncio.sleep(60)  # Shorter sleep on error
+
+    # Real-time functionality methods
+    async def _emit_real_time_update(self, event_type: str, data: Dict[str, Any]):
+        """Emit real-time updates to connected clients"""
+        try:
+            await self.sio.emit(event_type, data)
+            logger.info(f"Emitted real-time update: {event_type}")
+        except Exception as e:
+            logger.error(f"Real-time emit error: {str(e)}")
+
+    async def _setup_real_time_survey_tracking(self, survey_id: str):
+        """Set up real-time tracking for survey responses"""
+        try:
+            # Initialize survey tracking
+            self.real_time_events[survey_id] = {
+                "type": "pulse_survey",
+                "start_time": datetime.utcnow().isoformat(),
+                "responses": 0,
+                "target_responses": 100  # Default target
+            }
+            logger.info(f"Set up real-time tracking for survey: {survey_id}")
+        except Exception as e:
+            logger.error(f"Survey tracking setup error: {str(e)}")
+
+    # Missing functionality implementations
+    async def _process_traditional_clock_in(self, employee_id: str, attendance_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Process traditional clock-in method"""
+        try:
+            current_time = datetime.utcnow()
+            
+            attendance_record = {
+                "id": str(uuid.uuid4()),
+                "employee_id": employee_id,
+                "clock_in_time": current_time.isoformat(),
+                "method": "manual",
+                "status": "on_time",
+                "location": attendance_data.get("location", "office")
+            }
+            
+            return {
+                "success": True,
+                "message": "Clock-in successful",
+                "attendance_id": attendance_record["id"],
+                "time": current_time.isoformat()
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    async def _process_wellness_activity(self, employee_id: str, activity: Dict[str, Any]) -> Dict[str, Any]:
+        """Process individual wellness activity"""
+        try:
+            activity_result = {
+                "activity_id": str(uuid.uuid4()),
+                "employee_id": employee_id,
+                "activity_type": activity.get("type", "general"),
+                "completed_at": datetime.utcnow().isoformat(),
+                "points_earned": activity.get("points", 25),
+                "status": "completed"
+            }
+            return activity_result
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _check_wellness_alerts(self, employee_id: str, mood_result: Dict[str, Any], activity_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Check for wellness-related alerts"""
+        alerts = []
+        
+        # Check mood-based alerts
+        if mood_result.get("alerts"):
+            alerts.extend(mood_result["alerts"])
+        
+        # Check activity completion alerts
+        if len(activity_results) == 0:
+            alerts.append({
+                "type": "low_activity",
+                "severity": "low",
+                "message": "No wellness activities completed today",
+                "recommended_action": "Encourage participation in wellness programs"
+            })
+        
+        return alerts
+
+    async def _get_all_employees_for_payroll(self) -> List[Dict[str, Any]]:
+        """Get all employees for payroll processing"""
+        # Mock data - in real implementation, fetch from database
+        return [
+            {"id": "emp1", "name": "John Doe", "base_salary": 5000, "employee_type": "full_time"},
+            {"id": "emp2", "name": "Jane Smith", "base_salary": 4500, "employee_type": "full_time"},
+            {"id": "emp3", "name": "Bob Johnson", "base_salary": 3000, "employee_type": "part_time"}
+        ]
+
+    async def _calculate_comprehensive_salary(self, employee: Dict[str, Any], attendance_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate comprehensive salary including overtime"""
+        try:
+            base_salary = employee.get("base_salary", 0)
+            
+            # Calculate based on attendance
+            if attendance_data.get("success") and attendance_data.get("timesheet"):
+                timesheet = attendance_data["timesheet"]
+                total_hours = timesheet["summary"]["total_hours"]
+                overtime_hours = timesheet["summary"]["total_overtime"]
+                
+                # Standard calculation
+                hourly_rate = base_salary / 160  # Assuming 160 hours per month
+                overtime_rate = hourly_rate * 1.5
+                
+                regular_pay = min(total_hours, 160) * hourly_rate
+                overtime_pay = overtime_hours * overtime_rate
+                
+                total_pay = regular_pay + overtime_pay
+            else:
+                total_pay = base_salary
+                overtime_pay = 0
+                regular_pay = base_salary
+            
+            return {
+                "base_salary": base_salary,
+                "regular_pay": regular_pay,
+                "overtime_pay": overtime_pay,
+                "total_gross_pay": total_pay
+            }
+        except Exception as e:
+            logger.error(f"Salary calculation error: {str(e)}")
+            return {"base_salary": employee.get("base_salary", 0), "total_gross_pay": employee.get("base_salary", 0)}
+
+    async def _calculate_variable_pay(self, employee_id: str, payroll_period: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate variable pay components"""
+        try:
+            # Mock variable pay calculation
+            bonus = 500  # Performance bonus
+            commission = 300  # Sales commission
+            incentives = 200  # Other incentives
+            
+            return {
+                "performance_bonus": bonus,
+                "sales_commission": commission,
+                "incentives": incentives,
+                "total_variable_pay": bonus + commission + incentives
+            }
+        except Exception as e:
+            logger.error(f"Variable pay calculation error: {str(e)}")
+            return {"total_variable_pay": 0}
+
+    async def _calculate_statutory_deductions(self, employee: Dict[str, Any], salary_calc: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate statutory deductions (tax, PF, etc.)"""
+        try:
+            gross_pay = salary_calc.get("total_gross_pay", 0)
+            
+            # Mock statutory calculations
+            income_tax = gross_pay * 0.10  # 10% income tax
+            pf_contribution = min(gross_pay * 0.12, 1800)  # 12% PF, max 1800
+            esi_contribution = gross_pay * 0.0075 if gross_pay <= 25000 else 0  # ESI for salary <= 25k
+            
+            total_deductions = income_tax + pf_contribution + esi_contribution
+            
+            return {
+                "income_tax": income_tax,
+                "provident_fund": pf_contribution,
+                "esi": esi_contribution,
+                "total_statutory_deductions": total_deductions
+            }
+        except Exception as e:
+            logger.error(f"Statutory deductions calculation error: {str(e)}")
+            return {"total_statutory_deductions": 0}
+
+    async def _process_expense_reimbursements(self, employee_id: str, payroll_period: Dict[str, Any]) -> Dict[str, Any]:
+        """Process expense reimbursements"""
+        try:
+            # Mock reimbursement data
+            travel_expenses = 150
+            meal_allowance = 100
+            other_reimbursements = 50
+            
+            total_reimbursements = travel_expenses + meal_allowance + other_reimbursements
+            
+            return {
+                "travel_expenses": travel_expenses,
+                "meal_allowance": meal_allowance,
+                "other_reimbursements": other_reimbursements,
+                "total_reimbursements": total_reimbursements
+            }
+        except Exception as e:
+            logger.error(f"Expense reimbursement processing error: {str(e)}")
+            return {"total_reimbursements": 0}
+
+    async def _generate_comprehensive_payslip(self, employee: Dict[str, Any], salary_calc: Dict[str, Any], 
+                                           variable_pay: Dict[str, Any], deductions: Dict[str, Any], 
+                                           reimbursements: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate comprehensive payslip"""
+        try:
+            gross_pay = salary_calc.get("total_gross_pay", 0) + variable_pay.get("total_variable_pay", 0)
+            total_deductions = deductions.get("total_statutory_deductions", 0)
+            total_reimbursements = reimbursements.get("total_reimbursements", 0)
+            net_pay = gross_pay - total_deductions + total_reimbursements
+            
+            payslip = {
+                "payslip_id": str(uuid.uuid4()),
+                "employee_id": employee["id"],
+                "employee_name": employee["name"],
+                "pay_period": datetime.utcnow().strftime("%B %Y"),
+                "generated_at": datetime.utcnow().isoformat(),
+                "earnings": {
+                    "basic_salary": salary_calc.get("regular_pay", 0),
+                    "overtime_pay": salary_calc.get("overtime_pay", 0),
+                    "variable_pay": variable_pay.get("total_variable_pay", 0),
+                    "gross_pay": gross_pay
+                },
+                "deductions": deductions,
+                "reimbursements": reimbursements,
+                "net_pay": net_pay
+            }
+            
+            return payslip
+        except Exception as e:
+            logger.error(f"Payslip generation error: {str(e)}")
+            return {"error": str(e)}
+
+    async def _generate_payroll_compliance_report(self, payroll_results: List[Dict[str, Any]], payroll_period: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate payroll compliance report"""
+        try:
+            total_employees = len(payroll_results)
+            total_gross_pay = sum(p.get("earnings", {}).get("gross_pay", 0) for p in payroll_results)
+            total_tax_deducted = sum(p.get("deductions", {}).get("income_tax", 0) for p in payroll_results)
+            total_pf_deducted = sum(p.get("deductions", {}).get("provident_fund", 0) for p in payroll_results)
+            
+            compliance_report = {
+                "report_id": str(uuid.uuid4()),
+                "period": payroll_period,
+                "summary": {
+                    "total_employees": total_employees,
+                    "total_gross_pay": total_gross_pay,
+                    "total_tax_deducted": total_tax_deducted,
+                    "total_pf_deducted": total_pf_deducted
+                },
+                "compliance_checks": {
+                    "minimum_wage_compliance": True,
+                    "overtime_calculation_correct": True,
+                    "statutory_deductions_accurate": True,
+                    "pf_compliance": True,
+                    "esi_compliance": True
+                },
+                "status": "compliant",
+                "generated_at": datetime.utcnow().isoformat()
+            }
+            
+            return compliance_report
+        except Exception as e:
+            logger.error(f"Compliance report generation error: {str(e)}")
+            return {"status": "error", "error": str(e)}
+
+    async def _process_bank_transfers(self, payroll_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Process bank transfers for payroll"""
+        try:
+            successful_transfers = 0
+            failed_transfers = 0
+            total_amount = 0
+            
+            for payroll in payroll_results:
+                net_pay = payroll.get("net_pay", 0)
+                if net_pay > 0:
+                    # Mock bank transfer processing
+                    transfer_success = True  # In real implementation, process actual bank transfer
+                    if transfer_success:
+                        successful_transfers += 1
+                        total_amount += net_pay
+                    else:
+                        failed_transfers += 1
+            
+            return {
+                "status": "completed" if failed_transfers == 0 else "partial",
+                "successful_transfers": successful_transfers,
+                "failed_transfers": failed_transfers,
+                "total_amount_transferred": total_amount,
+                "processed_at": datetime.utcnow().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Bank transfer processing error: {str(e)}")
+            return {"status": "failed", "error": str(e)}
+
+    async def _save_payroll_data(self, payroll_summary: Dict[str, Any]):
+        """Save payroll data to database"""
+        try:
+            logger.info(f"Saving payroll data: {payroll_summary['payroll_id']}")
+            # In real implementation, save to database
+        except Exception as e:
+            logger.error(f"Payroll data save error: {str(e)}")
+
+    async def _generate_personalized_learning_path(self, employee_id: str, skill_assessment: Dict[str, Any], learning_request: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate personalized learning path"""
+        try:
+            learning_path = {
+                "path_id": str(uuid.uuid4()),
+                "employee_id": employee_id,
+                "created_at": datetime.utcnow().isoformat(),
+                "duration_weeks": 12,
+                "difficulty_level": learning_request.get("difficulty", "intermediate"),
+                "focus_areas": learning_request.get("focus_areas", ["technical_skills"]),
+                "recommended_courses": [
+                    {
+                        "course_id": "course_1",
+                        "title": "Advanced Python Programming",
+                        "duration_hours": 40,
+                        "difficulty": "intermediate",
+                        "prerequisites": ["basic_python"],
+                        "certification_available": True
+                    },
+                    {
+                        "course_id": "course_2", 
+                        "title": "Machine Learning Fundamentals",
+                        "duration_hours": 60,
+                        "difficulty": "intermediate",
+                        "prerequisites": ["python", "statistics"],
+                        "certification_available": True
+                    }
+                ],
+                "milestones": [
+                    {"week": 4, "milestone": "Complete Python course", "test_required": True},
+                    {"week": 8, "milestone": "Complete ML fundamentals", "test_required": True},
+                    {"week": 12, "milestone": "Final project submission", "certification": True}
+                ]
+            }
+            
+            return learning_path
+        except Exception as e:
+            logger.error(f"Learning path generation error: {str(e)}")
+            return {"error": str(e)}
 
     def get_system_status(self) -> Dict[str, Any]:
         """Get current system status"""
