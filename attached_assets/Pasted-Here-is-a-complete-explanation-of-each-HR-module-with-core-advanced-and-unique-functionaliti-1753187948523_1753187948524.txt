@@ -1,0 +1,345 @@
+Here is a **complete explanation** of each HR module with **core, advanced, and unique functionalities**, including **how each functionality works**, step by step.
+
+---
+
+## 🔹 **1. Hiring & Recruitment Module**
+
+### 🔸 Core Functionalities:
+
+* **Job Posting (Auto + Manual)**:
+
+  * HR creates job roles or AI suggests based on team needs.
+  * Auto-posts to job boards (Naukri, LinkedIn, Indeed).
+* **Resume Parsing**:
+
+  * AI scans uploaded resumes to extract key info (skills, experience, education).
+* **Candidate Ranking**:
+
+  * ML ranks candidates based on JD-to-resume match, cultural fit, past experience.
+* **Auto Screening Questions**:
+
+  * AI prepares screening MCQs or scenario-based Qs for shortlisting.
+
+### 🔸 Advanced & Unique:
+
+* **Smart JD Generator**:
+
+  * AI generates job descriptions using minimal inputs.
+* **Chatbot for Pre-Screening**:
+
+  * 24/7 bot interacts with applicants and collects details.
+* **Video Resume Reader**:
+
+  * AI scans applicant’s tone, speech & visual cues in video resumes.
+
+---
+
+## 🔹 **2. Interview Automation Module**
+
+### 🔸 Core:
+
+* **Interview Scheduling**:
+
+  * Auto-detects HR, panel & candidate availability → Sends invites.
+* **Panel Allocation**:
+
+  * System suggests panelists based on job profile.
+* **Online Interview Platform**:
+
+  * Built-in platform with recording, code editors, whiteboards.
+
+### 🔸 Advanced & Unique:
+
+* **AI-Based Interview Bot**:
+
+  * Conducts full voice/video interviews with NLP & real-time question adaptation.
+* **Emotion Analysis**:
+
+  * Tracks body language, tone, hesitation, stress levels.
+* **Auto Scoring**:
+
+  * System evaluates and scores based on answer quality, fluency, accuracy.
+
+---
+
+## 🔹 **3. Onboarding Module**
+
+### 🔸 Core:
+
+* **Document Collection & Verification**:
+
+  * Auto-request PAN, Aadhar, Certificates, Bank Info.
+* **Digital Offer Letters**:
+
+  * Auto-generates and sends offer letters based on template and salary.
+
+### 🔸 Advanced & Unique:
+
+* **Virtual HR Buddy Bot**:
+
+  * AI bot guides new hires, answers queries, provides orientation.
+* **Gamified Onboarding Journey**:
+
+  * Step-based fun journey to complete tasks like doc upload, team intros, etc.
+
+---
+
+## 🔹 **4. Employee Records & Management**
+
+### 🔸 Core:
+
+* **Profile Management**:
+
+  * Stores employee info, contact, experience, reporting manager.
+* **Org Structure Mapping**:
+
+  * Shows hierarchy visually.
+
+### 🔸 Advanced & Unique:
+
+* **Auto-Updating Records**:
+
+  * System updates info via chatbot or when someone changes LinkedIn.
+* **Smart Alerts**:
+
+  * Notifies HR of contract expiry, incomplete docs, etc.
+
+---
+
+## 🔹 **5. Attendance & Time Tracking**
+
+### 🔸 Core:
+
+* **Biometric/Face Recognition**:
+
+  * Clock in/out via face, fingerprint, or phone GPS.
+* **Work Hour Calculation**:
+
+  * Auto calculates late, overtime, under-time.
+
+### 🔸 Advanced & Unique:
+
+* **Remote Work Detection**:
+
+  * Detects active screen/app usage during remote hours.
+* **AI Productivity Heatmaps**:
+
+  * Shows peak working hours of each employee/team.
+
+---
+
+## 🔹 **6. Payroll & Compensation**
+
+### 🔸 Core:
+
+* **Salary Calculation**:
+
+  * Based on attendance, bonuses, deductions, tax slabs.
+* **Payslip Generation**:
+
+  * Auto monthly slip email with breakdown.
+
+### 🔸 Advanced & Unique:
+
+* **Smart Bonus Engine**:
+
+  * Suggests bonuses based on performance, profit share.
+* **Crypto/Points Based Salary Option**:
+
+  * Option to receive part of salary as digital tokens or loyalty points.
+
+---
+
+## 🔹 **7. Performance Management**
+
+### 🔸 Core:
+
+* **Goal Setting & Tracking**:
+
+  * Employees and managers set SMART goals.
+* **Quarterly Reviews**:
+
+  * System collects feedback and rates.
+
+### 🔸 Advanced & Unique:
+
+* **360° Feedback AI Analyzer**:
+
+  * Collects and analyzes multi-source feedback with sentiment analysis.
+* **Auto Promotion Recommendation**:
+
+  * Suggests promotions based on performance + tenure + skills.
+
+---
+
+## 🔹 **8. Learning & Development**
+
+### 🔸 Core:
+
+* **Course Recommendations**:
+
+  * Based on job role + skills gap → AI suggests internal/external courses.
+* **Certification Tracking**:
+
+  * Stores course completions and validity.
+
+### 🔸 Advanced & Unique:
+
+* **AI Skill Progression Maps**:
+
+  * Tracks learning growth over time.
+* **Auto-Learning Nudges**:
+
+  * Sends reminders to continue learning based on idle time or goals.
+
+---
+
+## 🔹 **9. Employee Engagement & Wellness**
+
+### 🔸 Core:
+
+* **Polls & Surveys**:
+
+  * Collects pulse feedback on workplace issues.
+* **Birthday & Work Anniversary Celebrations**:
+
+  * Auto messages & gifts integration.
+
+### 🔸 Advanced & Unique:
+
+* **Mental Health Bot**:
+
+  * Offers 24x7 emotional support, journaling, therapy suggestions.
+* **Mood Tracker**:
+
+  * Employees input daily mood → AI recommends music or break.
+
+---
+
+## 🔹 **10. Compliance & Legal**
+
+### 🔸 Core:
+
+* **Policy Management**:
+
+  * Upload, notify, track acknowledgements.
+* **Contract Management**:
+
+  * Track offer, NDA, contracts, expiry, auto-renewal.
+
+### 🔸 Advanced & Unique:
+
+* **Regulation Updates Bot**:
+
+  * Monitors changes in HR laws and alerts HR team.
+* **Audit Trail Generator**:
+
+  * AI prepares compliance history for audits.
+
+---
+
+## 🔹 **11. Automation in Communication**
+
+### 🔸 Core:
+
+* **Auto Messaging & Alerts**:
+
+  * Leave approvals, announcements, reminders.
+
+### 🔸 Advanced & Unique:
+
+* **Voice Bot for Calls**:
+
+  * Auto calls candidates, employees for updates, interview reminders.
+* **Multilingual Chatbot**:
+
+  * Speaks all regional languages for inclusivity.
+
+---
+
+## 🔹 **12. HR Analytics & Insights**
+
+### 🔸 Core:
+
+* **Employee Reports**:
+
+  * Joinings, attrition, leaves, etc.
+* **Team Productivity Charts**
+
+### 🔸 Advanced & Unique:
+
+* **Predictive Attrition AI**:
+
+  * Predicts who might quit based on behavior data.
+* **Hiring Forecast Tool**:
+
+  * Tells how many resources needed next quarter.
+
+---
+
+## 🔹 **13. Separation & Exit Module**
+
+### 🔸 Core:
+
+* **Exit Process Automation**:
+
+  * Sends forms, checklist, approval flow.
+* **Full & Final Settlement**
+
+### 🔸 Advanced & Unique:
+
+* **AI Exit Interview Analyzer**:
+
+  * NLP analyses reasons for leaving.
+* **Talent Retention Suggestion**:
+
+  * Suggests retention plan before exit approval.
+
+---
+
+## 🔹 **14. Event & Festival Automation**
+
+### 🔸 Core:
+
+* **Auto Event Planning**:
+
+  * AI calendar for events, reminders, teams, budget.
+* **E-Gifts & Cards**:
+
+  * Automates birthday/holiday greetings.
+
+### 🔸 Advanced & Unique:
+
+* **Virtual Celebration Rooms**:
+
+  * Host VR/3D rooms for festival celebrations.
+* **AI-Based Team Event Matching**:
+
+  * Groups people by interest for better bonding.
+
+---
+
+## 🔹 **15. Advanced & Unique AI HR Features**
+
+* **AI-Powered HR Agent (No Human Needed)**:
+
+  * Fully automated HR decision-maker & communicator.
+* **Voice-Enabled HR Bot**:
+
+  * Speak to it, it speaks back, books leaves, explains policy.
+* **Smart Career Path Advisor**:
+
+  * Tells employees best next role + skills needed.
+* **Internal Job Mobility Bot**:
+
+  * Auto-suggests open internal roles.
+* **Custom Culture Fit Predictor**:
+
+  * AI predicts if a candidate fits the work culture.
+* **Auto-Employee Mood Score**:
+
+  * Analyzes emails, messages for mood changes.
+
+---
+
+If you want this as a **PDF, document**, or **dashboard-ready module UI plan**, I can generate it too. Let me know!
