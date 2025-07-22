@@ -1,136 +1,99 @@
 "use client"
 
-import type React from "react"
-import { createContext, useContext, useState, useRef } from "react"
+import React, { createContext, useContext, useState, useRef } from 'react'
 
 interface VoiceContextType {
-  isListening: boolean
-  isSpeaking: boolean
-  startListening: () => void
-  stopListening: () => void
-  speak: (text: string) => Promise<void>
-  transcript: string
-  confidence: number
+  isRecording: boolean
+  isPlaying: boolean
+  startRecording: () => Promise<void>
+  stopRecording: () => Promise<Blob | null>
+  playAudio: (audioUrl: string) => Promise<void>
+  synthesizeSpeech: (text: string) => Promise<string>
 }
 
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined)
 
 export function VoiceProvider({ children }: { children: React.ReactNode }) {
-  const [isListening, setIsListening] = useState(false)
-  const [isSpeaking, setIsSpeaking] = useState(false)
-  const [transcript, setTranscript] = useState("")
-  const [confidence, setConfidence] = useState(0)
+  const [isRecording, setIsRecording] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
 
-  const recognitionRef = useRef<any>(null)
-  const synthRef = useRef<SpeechSynthesis | null>(null)
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      mediaRecorderRef.current = new MediaRecorder(stream)
+      audioChunksRef.current = []
 
-  const startListening = () => {
-    if (typeof window !== "undefined" && "webkitSpeechRecognition" in window) {
-      const recognition = new (window as any).webkitSpeechRecognition()
-      recognition.continuous = true
-      recognition.interimResults = true
-      recognition.lang = "en-US"
-
-      recognition.onstart = () => {
-        setIsListening(true)
-      }
-
-      recognition.onresult = (event: any) => {
-        let finalTranscript = ""
-        let interimTranscript = ""
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript
-          const confidence = event.results[i][0].confidence
-
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript
-            setConfidence(confidence || 0.9)
-          } else {
-            interimTranscript += transcript
-          }
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
         }
-
-        setTranscript(finalTranscript || interimTranscript)
       }
 
-      recognition.onerror = (event: any) => {
-        console.error("Speech recognition error:", event.error)
-        setIsListening(false)
-      }
-
-      recognition.onend = () => {
-        setIsListening(false)
-      }
-
-      recognition.start()
-      recognitionRef.current = recognition
-    } else {
-      // Fallback for browsers without speech recognition
-      console.warn("Speech recognition not supported")
-      setIsListening(true)
-
-      // Simulate speech recognition for demo
-      setTimeout(() => {
-        setTranscript("Hello, I'm interested in the software engineer position.")
-        setConfidence(0.95)
-        setIsListening(false)
-      }, 3000)
+      mediaRecorderRef.current.start()
+      setIsRecording(true)
+    } catch (error) {
+      console.error('Error starting recording:', error)
     }
   }
 
-  const stopListening = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
-    }
-    setIsListening(false)
-  }
-
-  const speak = async (text: string): Promise<void> => {
+  const stopRecording = async (): Promise<Blob | null> => {
     return new Promise((resolve) => {
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        setIsSpeaking(true)
-
-        const utterance = new SpeechSynthesisUtterance(text)
-        utterance.rate = 0.9
-        utterance.pitch = 1
-        utterance.volume = 0.8
-
-        utterance.onend = () => {
-          setIsSpeaking(false)
-          resolve()
+      if (mediaRecorderRef.current && isRecording) {
+        mediaRecorderRef.current.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' })
+          resolve(audioBlob)
         }
 
-        utterance.onerror = () => {
-          setIsSpeaking(false)
-          resolve()
-        }
+        mediaRecorderRef.current.stop()
+        setIsRecording(false)
 
-        window.speechSynthesis.speak(utterance)
+        // Stop all tracks
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
       } else {
-        // Fallback for browsers without speech synthesis
-        console.log("Speaking:", text)
-        setIsSpeaking(true)
-        setTimeout(() => {
-          setIsSpeaking(false)
-          resolve()
-        }, text.length * 50) // Simulate speaking time
+        resolve(null)
       }
     })
   }
 
+  const playAudio = async (audioUrl: string) => {
+    setIsPlaying(true)
+    const audio = new Audio(audioUrl)
+
+    return new Promise<void>((resolve) => {
+      audio.onended = () => {
+        setIsPlaying(false)
+        resolve()
+      }
+      audio.onerror = () => {
+        setIsPlaying(false)
+        resolve()
+      }
+      audio.play()
+    })
+  }
+
+  const synthesizeSpeech = async (text: string): Promise<string> => {
+    const response = await fetch('/api/voice/synthesize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, voice: 'default', language: 'en' })
+    })
+
+    const data = await response.json()
+    return data.audio_url
+  }
+
   return (
-    <VoiceContext.Provider
-      value={{
-        isListening,
-        isSpeaking,
-        startListening,
-        stopListening,
-        speak,
-        transcript,
-        confidence,
-      }}
-    >
+    <VoiceContext.Provider value={{ 
+      isRecording, 
+      isPlaying, 
+      startRecording, 
+      stopRecording, 
+      playAudio, 
+      synthesizeSpeech 
+    }}>
       {children}
     </VoiceContext.Provider>
   )
@@ -139,7 +102,7 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
 export function useVoice() {
   const context = useContext(VoiceContext)
   if (context === undefined) {
-    throw new Error("useVoice must be used within a VoiceProvider")
+    throw new Error('useVoice must be used within a VoiceProvider')
   }
   return context
 }

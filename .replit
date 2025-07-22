@@ -8,7 +8,7 @@ channel = "stable-24_05"
 run = ["sh", "-c", "npm run dev"]
 
 [workflows]
-runButton = "Run Full Stack"
+runButton = "Run Full Stack Fixed"
 
 [[workflows.workflow]]
 name = "Start Backend"
@@ -30,6 +30,19 @@ args = "npm run dev -- --port 3000"
 
 [[workflows.workflow]]
 name = "Run Full Stack"
+author = 45368595
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd backend && python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev -- --port 3000"
+
+[[workflows.workflow]]
+name = "Run Full Stack Fixed"
 author = 45368595
 mode = "parallel"
 

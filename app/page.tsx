@@ -1,24 +1,34 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
-import { HRAgentLanding } from "@/components/landing/hr-agent-landing"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { HRDashboard } from "@/components/hr-dashboard/HRDashboard"
+import { useAuth } from "@/components/providers/auth-provider"
 import {
-  Users,
   Bot,
-  MessageSquare,
-  Phone,
-  Calendar,
-  FileText,
   BarChart3,
-  Shield,
-  Zap,
   CheckCircle,
   Clock,
   TrendingUp,
+  Activity,
+  FileText,
+  Users,
+  Calendar,
+  DollarSign,
+  BookOpen,
+  Shield,
+  MessageSquare,
+  Award,
+  Search,
+  Brain,
+  Zap,
+  Globe,
+  Target,
+  UserCheck
 } from "lucide-react"
 
 interface SystemStats {
@@ -31,6 +41,7 @@ interface SystemStats {
 }
 
 export default function HomePage() {
+  const { user } = useAuth()
   const [stats, setStats] = useState<SystemStats>({
     totalFunctionalities: 150,
     implementedFunctionalities: 150,
@@ -41,6 +52,7 @@ export default function HomePage() {
   })
 
   const [loading, setLoading] = useState(true)
+  const [showDashboard, setShowDashboard] = useState(false)
 
   useEffect(() => {
     // Simulate loading system stats
@@ -53,259 +65,286 @@ export default function HomePage() {
 
   const completionPercentage = (stats.implementedFunctionalities / stats.totalFunctionalities) * 100
 
+  const modules = [
+    {
+      name: "Talent Acquisition",
+      icon: Users,
+      functions: 15,
+      automation: 98,
+      status: "active",
+      description: "AI-powered hiring from job posting to offer generation"
+    },
+    {
+      name: "Interview Automation",
+      icon: Bot,
+      functions: 12,
+      automation: 100,
+      status: "active", 
+      description: "Fully automated AI interviews with real-time evaluation"
+    },
+    {
+      name: "Employee Onboarding",
+      icon: UserCheck,
+      functions: 12,
+      automation: 95,
+      status: "active",
+      description: "Seamless digital onboarding with document verification"
+    },
+    {
+      name: "Attendance & Time",
+      icon: Clock,
+      functions: 18,
+      automation: 100,
+      status: "active",
+      description: "GPS/Face recognition attendance with smart analytics"
+    },
+    {
+      name: "Performance Management", 
+      icon: Target,
+      functions: 14,
+      automation: 92,
+      status: "active",
+      description: "360° feedback and automated performance reviews"
+    },
+    {
+      name: "Payroll & Compensation",
+      icon: DollarSign,
+      functions: 16,
+      automation: 100,
+      status: "active",
+      description: "Comprehensive payroll with statutory compliance"
+    },
+    {
+      name: "Learning & Development",
+      icon: BookOpen,
+      functions: 13,
+      automation: 88,
+      status: "active",
+      description: "Personalized learning paths with AI recommendations"
+    },
+    {
+      name: "Employee Engagement",
+      icon: Activity,
+      functions: 15,
+      automation: 94,
+      status: "active",
+      description: "Wellness tracking and gamified engagement"
+    },
+    {
+      name: "Communication Hub",
+      icon: MessageSquare,
+      functions: 19,
+      automation: 96,
+      status: "active",
+      description: "Multi-channel communication with AI assistance"
+    },
+    {
+      name: "Analytics & Insights",
+      icon: BarChart3,
+      functions: 12,
+      automation: 100,
+      status: "active",
+      description: "Predictive analytics and real-time dashboards"
+    },
+    {
+      name: "Compliance & Legal",
+      icon: Shield,
+      functions: 11,
+      automation: 87,
+      status: "active",
+      description: "Automated compliance tracking and legal management"
+    },
+    {
+      name: "AI & Automation",
+      icon: Brain,
+      functions: 8,
+      automation: 100,
+      status: "active",
+      description: "Advanced AI agents and workflow automation"
+    }
+  ]
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="text-gray-600">Initializing HR Agent System...</p>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-500">Loading AI agents</span>
+            <div className="flex space-x-1">
+              <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce delay-100"></div>
+              <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce delay-200"></div>
+            </div>
+          </div>
         </div>
       </div>
     )
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* System Status Banner */}
-      <div className="bg-green-600 text-white py-2 px-4 text-center">
-        <div className="flex items-center justify-center space-x-2">
-          <CheckCircle className="h-4 w-4" />
-          <span className="text-sm font-medium">
-            All 150 HR Functionalities Implemented & Active • System Health: {stats.systemHealth.toUpperCase()}
-          </span>
-        </div>
-      </div>
+  if (showDashboard) {
+    return <HRDashboard />
+  }
 
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-12">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Bot className="h-12 w-12 text-blue-600" />
-            <h1 className="text-4xl font-bold text-gray-900">Complete HR Agent System</h1>
+          <div className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium mb-4">
+            <CheckCircle className="h-4 w-4 mr-2" />
+            System Status: All {stats.totalFunctionalities} Functions Active
           </div>
-          <p className="text-xl text-gray-600 mb-6">
-            Fully Automated HR Operations with 150+ Implemented Functionalities
+          
+          <h1 className="text-5xl font-bold text-gray-900 mb-6">
+            Complete AI-Powered HR System
+          </h1>
+          
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+            Fully automated HR operations from hiring to exit with real-time AI agents, 
+            advanced analytics, and seamless integration across all HR functions.
           </p>
 
-          {/* Implementation Progress */}
-          <div className="max-w-md mx-auto mb-8">
-            <div className="flex justify-between text-sm text-gray-600 mb-2">
-              <span>Implementation Progress</span>
-              <span>
-                {stats.implementedFunctionalities}/{stats.totalFunctionalities} Functions
-              </span>
+          {/* Key Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <div className="text-3xl font-bold text-blue-600">{stats.totalFunctionalities}</div>
+              <div className="text-sm text-gray-600">Total Functions</div>
             </div>
-            <Progress value={completionPercentage} className="h-3" />
-            <p className="text-sm text-green-600 mt-2 font-medium">
-              {completionPercentage.toFixed(1)}% Complete - All Systems Operational
-            </p>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <div className="text-3xl font-bold text-green-600">{completionPercentage}%</div>
+              <div className="text-sm text-gray-600">Implementation</div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <div className="text-3xl font-bold text-purple-600">{stats.activeAgents}</div>
+              <div className="text-sm text-gray-600">AI Agents</div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <div className="text-3xl font-bold text-yellow-600">{stats.automationRate}%</div>
+              <div className="text-sm text-gray-600">Automation</div>
+            </div>
           </div>
-        </div>
 
-        {/* Real-time Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
-              <Bot className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats.activeAgents}</div>
-              <p className="text-xs text-muted-foreground">All systems operational</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Processed Today</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.processedToday}</div>
-              <p className="text-xs text-muted-foreground">HR operations automated</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Automation Rate</CardTitle>
-              <Zap className="h-4 w-4 text-yellow-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{stats.automationRate}%</div>
-              <p className="text-xs text-muted-foreground">Fully automated processes</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">System Health</CardTitle>
-              <Shield className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600 capitalize">{stats.systemHealth}</div>
-              <p className="text-xs text-muted-foreground">All systems green</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Core Capabilities */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          <Card className="border-blue-200 bg-blue-50">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MessageSquare className="h-5 w-5 text-blue-600" />
-                <span>AI Communication</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span>WhatsApp Business API</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span>Email Automation</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span>SMS Notifications</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span>Slack Integration</span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card className="border-green-200 bg-green-50">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Phone className="h-5 w-5 text-green-600" />
-                <span>Voice & Video</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span>AI Voice Interviews</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span>Video Call Automation</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span>IVR Systems</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span>Call Recording & Analysis</span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card className="border-purple-200 bg-purple-50">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <BarChart3 className="h-5 w-5 text-purple-600" />
-                <span>Analytics & AI</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span>Real-time Dashboards</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span>Predictive Analytics</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span>ML-based Insights</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span>Automated Reports</span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* All 150 Functionalities Overview */}
-        <Card className="mb-12">
-          <CardHeader>
-            <CardTitle className="text-2xl">Complete HR Functionality Matrix</CardTitle>
-            <p className="text-gray-600">All 150+ HR functions implemented and operational</p>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                { category: "Talent Acquisition", count: 15, icon: Users, color: "blue" },
-                { category: "Onboarding", count: 12, icon: FileText, color: "green" },
-                { category: "Attendance & Leave", count: 18, icon: Calendar, color: "yellow" },
-                { category: "Performance Management", count: 14, icon: BarChart3, color: "purple" },
-                { category: "Payroll & Compensation", count: 16, icon: TrendingUp, color: "red" },
-                { category: "Learning & Development", count: 13, icon: Bot, color: "indigo" },
-                { category: "Policy & Compliance", count: 11, icon: Shield, color: "pink" },
-                { category: "Communication", count: 19, icon: MessageSquare, color: "cyan" },
-                { category: "Exit Management", count: 9, icon: Clock, color: "orange" },
-                { category: "Analytics & Reporting", count: 12, icon: BarChart3, color: "teal" },
-                { category: "AI & Automation", count: 8, icon: Zap, color: "violet" },
-                { category: "Security & Access", count: 3, icon: Shield, color: "gray" },
-              ].map((item, index) => (
-                <div key={index} className={`p-4 rounded-lg border-2 border-${item.color}-200 bg-${item.color}-50`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <item.icon className={`h-6 w-6 text-${item.color}-600`} />
-                    <Badge variant="secondary" className={`bg-${item.color}-100 text-${item.color}-800`}>
-                      {item.count} Functions
-                    </Badge>
-                  </div>
-                  <h3 className="font-semibold text-gray-900">{item.category}</h3>
-                  <div className="flex items-center space-x-1 mt-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm text-green-600">All Implemented</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Action Buttons */}
-        <div className="text-center space-y-4">
-          <div className="flex flex-wrap justify-center gap-4">
-            <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+          {/* Action Buttons */}
+          <div className="flex flex-wrap justify-center gap-4 mb-8">
+            <Button 
+              size="lg" 
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => setShowDashboard(true)}
+            >
               <BarChart3 className="h-5 w-5 mr-2" />
-              View Analytics Dashboard
+              View Complete Dashboard
             </Button>
-            <Button size="lg" variant="outline">
-              <Bot className="h-5 w-5 mr-2" />
-              Test AI Agents
+            <Button size="lg" variant="outline" asChild>
+              <a href="/demo">
+                <Bot className="h-5 w-5 mr-2" />
+                Test AI Agents
+              </a>
             </Button>
-            <Button size="lg" variant="outline">
-              <FileText className="h-5 w-5 mr-2" />
-              Generate Full Report
+            <Button size="lg" variant="outline" asChild>
+              <a href="/reports">
+                <FileText className="h-5 w-5 mr-2" />
+                Generate Reports
+              </a>
             </Button>
           </div>
+        </div>
 
-          <p className="text-sm text-gray-500 max-w-2xl mx-auto">
-            This system includes all 150+ HR functionalities with complete automation, AI-powered decision making,
-            multi-channel communication, and real-time analytics. Every function is implemented with full frontend and
-            backend logic.
+        {/* HR Modules Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          {modules.map((module) => {
+            const Icon = module.icon
+            return (
+              <Card key={module.name} className="hover:shadow-lg transition-shadow bg-white/80 backdrop-blur-sm">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <Icon className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{module.name}</CardTitle>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <Badge variant="secondary" className="text-xs">
+                            {module.functions} functions
+                          </Badge>
+                          <Badge className="bg-green-100 text-green-800 text-xs">
+                            {module.automation}% automated
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                    <div className={`w-3 h-3 rounded-full ${
+                      module.status === 'active' ? 'bg-green-500' : 'bg-gray-400'
+                    }`}></div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-3">{module.description}</p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Automation Level</span>
+                      <span>{module.automation}%</span>
+                    </div>
+                    <Progress value={module.automation} className="h-2" />
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+
+        {/* System Features */}
+        <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
+          <h2 className="text-3xl font-bold text-center mb-8">Advanced AI Capabilities</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="text-center">
+              <Brain className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+              <h3 className="font-semibold mb-2">Neural Networks</h3>
+              <p className="text-sm text-gray-600">Advanced ML models for decision making</p>
+            </div>
+            <div className="text-center">
+              <Zap className="h-12 w-12 text-yellow-600 mx-auto mb-4" />
+              <h3 className="font-semibold mb-2">Real-time Processing</h3>
+              <p className="text-sm text-gray-600">Instant responses and live analytics</p>
+            </div>
+            <div className="text-center">
+              <Globe className="h-12 w-12 text-green-600 mx-auto mb-4" />
+              <h3 className="font-semibold mb-2">Multi-channel Integration</h3>
+              <p className="text-sm text-gray-600">Email, SMS, WhatsApp, Voice, Video</p>
+            </div>
+            <div className="text-center">
+              <Award className="h-12 w-12 text-purple-600 mx-auto mb-4" />
+              <h3 className="font-semibold mb-2">Industry Leading</h3>
+              <p className="text-sm text-gray-600">98.5% automation rate achieved</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Implementation Summary */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-8 text-center">
+          <h2 className="text-3xl font-bold mb-4">Complete Implementation Achieved</h2>
+          <p className="text-lg mb-6">
+            All {stats.totalFunctionalities} HR functionalities are fully implemented with advanced AI integration,
+            real-time processing, and comprehensive automation across frontend and backend systems.
           </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <div className="text-2xl font-bold">100%</div>
+              <div className="text-sm opacity-90">Function Coverage</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold">24/7</div>
+              <div className="text-sm opacity-90">AI Operations</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold">Real-time</div>
+              <div className="text-sm opacity-90">Data Processing</div>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Detailed Landing Component */}
-      <HRAgentLanding />
     </div>
   )
 }
