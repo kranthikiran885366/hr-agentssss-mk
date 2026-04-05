@@ -6,15 +6,25 @@ Uses multiple AI models and scoring algorithms
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Tuple
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import TfidfVectorizer
-import openai
-import spacy
-from transformers import pipeline
-import torch
 from datetime import datetime
 import json
+
+try:
+    import numpy as np
+    from sklearn.metrics.pairwise import cosine_similarity
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    import spacy
+    from transformers import pipeline
+    import torch
+    _ml_available = True
+except ImportError:
+    _ml_available = False
+
+try:
+    import openai
+    _openai_available = True
+except ImportError:
+    _openai_available = False
 
 from backend.utils.config import settings
 

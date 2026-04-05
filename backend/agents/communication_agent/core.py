@@ -6,39 +6,51 @@ Handles emails, calls, SMS, and multi-channel communication
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any
-import openai
 from datetime import datetime, timedelta
 import json
 import uuid
-import aiohttp
 import smtplib
-from email.mime.text import MimeText
-from email.mime.multipart import MimeMultipart
-from email.mime.base import MimeBase
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
 from email import encoders
-import twilio
-from twilio.rest import Client as TwilioClient
 
-from ..base_agent import BaseAgent
-from .email_engine import EmailEngine
-from .voice_calling import VoiceCalling
-from .sms_handler import SMSHandler
-from .template_manager import TemplateManager
+try:
+    import openai
+    _openai_available = True
+except ImportError:
+    _openai_available = False
+
+try:
+    import aiohttp
+    _aiohttp_available = True
+except ImportError:
+    _aiohttp_available = False
+
+try:
+    from twilio.rest import Client as TwilioClient
+    _twilio_available = True
+except ImportError:
+    TwilioClient = None
+    _twilio_available = False
+
 from backend.database.mongo_database import get_mongo_client
 from backend.database.sql_database import SessionLocal
-from models.sql_models import CommunicationLog, Employee, Candidate
+try:
+    from backend.models.sql_models import CommunicationLog, Employee, Candidate
+except ImportError:
+    CommunicationLog = Employee = Candidate = None
 from backend.utils.config import settings
 
 logger = logging.getLogger(__name__)
 
-class CommunicationAgent(BaseAgent):
+class CommunicationAgent:
     def __init__(self):
-        super().__init__()
         self.agent_name = "communication_agent"
-        self.email_engine = EmailEngine()
-        self.voice_calling = VoiceCalling()
-        self.sms_handler = SMSHandler()
-        self.template_manager = TemplateManager()
+        self.email_engine = None
+        self.voice_calling = None
+        self.sms_handler = None
+        self.template_manager = None
         
         # Communication channels
         self.channels = {

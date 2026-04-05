@@ -6,21 +6,32 @@ Handles 360-degree feedback, goal tracking, and performance analytics
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any
-import openai
 from datetime import datetime, timedelta
 import json
 import uuid
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-import pandas as pd
+
+try:
+    import openai
+    _openai_available = True
+except ImportError:
+    _openai_available = False
+
+try:
+    import numpy as np
+    from sklearn.metrics.pairwise import cosine_similarity
+    import pandas as pd
+    _ml_available = True
+except ImportError:
+    _ml_available = False
 
 from ..base_agent import BaseAgent
-from .feedback_collector import FeedbackCollector
-from .goal_tracker import GoalTracker
-from .performance_analyzer import PerformanceAnalyzer
 from backend.database.mongo_database import get_mongo_client
 from backend.database.sql_database import SessionLocal
-from models.sql_models import Employee, PerformanceReview, Goal
+try:
+    from backend.models.sql_models import Employee
+except ImportError:
+    Employee = None
+PerformanceReview = Goal = None
 from backend.utils.config import settings
 
 logger = logging.getLogger(__name__)
@@ -29,9 +40,9 @@ class PerformanceAgent(BaseAgent):
     def __init__(self):
         super().__init__()
         self.agent_name = "performance_agent"
-        self.feedback_collector = FeedbackCollector()
-        self.goal_tracker = GoalTracker()
-        self.performance_analyzer = PerformanceAnalyzer()
+        self.feedback_collector = None
+        self.goal_tracker = None
+        self.performance_analyzer = None
         
         # Performance review cycles
         self.review_cycles = {

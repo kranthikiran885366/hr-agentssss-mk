@@ -6,10 +6,15 @@ Creates personalized questions based on job requirements and candidate backgroun
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any
-import openai
 import json
 import random
 from datetime import datetime
+
+try:
+    import openai
+    _openai_available = True
+except ImportError:
+    _openai_available = False
 
 from backend.utils.config import settings
 

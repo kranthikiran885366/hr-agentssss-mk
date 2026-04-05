@@ -15,11 +15,25 @@ import aiofiles
 import aiohttp
 import base64
 
-# Cloud TTS/STT services
-import azure.cognitiveservices.speech as speechsdk
-from google.cloud import speech as google_speech
-from google.cloud import texttospeech as google_tts
-import openai
+# Cloud TTS/STT services (optional - gracefully degrade if not installed)
+try:
+    import azure.cognitiveservices.speech as speechsdk
+    _azure_available = True
+except ImportError:
+    _azure_available = False
+
+try:
+    from google.cloud import speech as google_speech
+    from google.cloud import texttospeech as google_tts
+    _google_cloud_available = True
+except ImportError:
+    _google_cloud_available = False
+
+try:
+    import openai
+    _openai_available = True
+except ImportError:
+    _openai_available = False
 
 from backend.utils.config import settings
 

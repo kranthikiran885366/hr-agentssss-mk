@@ -26,7 +26,8 @@ model User {
   teamMembers   TeamMember[] @relation("TeamMember")
   
   // Training needs
-  trainingNeeds TrainingNeedsAnalysis[]
+  trainingNeeds        TrainingNeedsAnalysis[] @relation("EmployeeTrainingNeeds")
+  createdTrainingNeeds TrainingNeedsAnalysis[] @relation("CreatedTrainingNeeds")
   
   @@map("users")
 }

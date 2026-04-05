@@ -4,12 +4,10 @@ Structured data models for PostgreSQL
 """
 
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey, JSON
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
-
-Base = declarative_base()
+from backend.database.sql_database import Base
 
 class User(Base):
     __tablename__ = "users"

@@ -6,20 +6,30 @@ Handles document collection, account creation, training assignment, and integrat
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any
-import openai
 from datetime import datetime, timedelta
 import json
 import uuid
-import aiohttp
+
+try:
+    import openai
+    _openai_available = True
+except ImportError:
+    _openai_available = False
+
+try:
+    import aiohttp
+    _aiohttp_available = True
+except ImportError:
+    _aiohttp_available = False
 
 from ..base_agent import BaseAgent
-from .document_processor import DocumentProcessor
-from .account_creator import AccountCreator
-from .training_scheduler import TrainingScheduler
-from .integration_manager import IntegrationManager
 from backend.database.mongo_database import get_mongo_client
 from backend.database.sql_database import SessionLocal
-from models.sql_models import OnboardingSession, Employee, Candidate
+try:
+    from backend.models.sql_models import Employee, Candidate
+except ImportError:
+    Employee = Candidate = None
+OnboardingSession = None
 from backend.utils.config import settings
 
 logger = logging.getLogger(__name__)
@@ -28,10 +38,10 @@ class OnboardingAgent(BaseAgent):
     def __init__(self):
         super().__init__()
         self.agent_name = "onboarding_agent"
-        self.document_processor = DocumentProcessor()
-        self.account_creator = AccountCreator()
-        self.training_scheduler = TrainingScheduler()
-        self.integration_manager = IntegrationManager()
+        self.document_processor = None
+        self.account_creator = None
+        self.training_scheduler = None
+        self.integration_manager = None
         
         # Onboarding workflow steps
         self.workflow_steps = {

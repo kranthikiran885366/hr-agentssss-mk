@@ -6,18 +6,31 @@ Handles both chat and voice interviews with real AI
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any
-import openai
 from datetime import datetime, timedelta
 import json
 import uuid
-from transformers import pipeline, AutoTokenizer, AutoModel
-import torch
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
+
+try:
+    import openai
+    _openai_available = True
+except ImportError:
+    _openai_available = False
+
+try:
+    from transformers import pipeline, AutoTokenizer, AutoModel
+    import torch
+    import numpy as np
+    from sklearn.metrics.pairwise import cosine_similarity
+    _ml_available = True
+except ImportError:
+    _ml_available = False
 
 from backend.database.sql_database import SessionLocal
 from backend.database.mongo_database import get_mongo_client
-from backend.models.sql_models import InterviewSession, InterviewMessage, Candidate
+try:
+    from backend.models.sql_models import InterviewSession, InterviewMessage, Candidate
+except ImportError:
+    InterviewSession = InterviewMessage = Candidate = None
 from backend.utils.config import settings
 
 logger = logging.getLogger(__name__)
@@ -511,9 +524,11 @@ class InterviewAgent:
             logger.error(f"Relevance analysis error: {str(e)}")
             return 50.0
 
-    async def _get_text_embedding(self, text: str) -> np.ndarray:
+    async def _get_text_embedding(self, text: str):
         """Get text embedding using transformer model"""
         try:
+            if not _ml_available:
+                return []
             inputs = self.tokenizer(text, return_tensors="pt", truncation=True, padding=True)
             
             with torch.no_grad():
@@ -524,7 +539,7 @@ class InterviewAgent:
             
         except Exception as e:
             logger.error(f"Embedding generation error: {str(e)}")
-            return np.zeros(384)  # Default embedding size
+            return np.zeros(384) if _ml_available else []
 
     async def _analyze_completeness(self, message: str, session_data: Dict[str, Any]) -> float:
         """Analyze completeness of the response"""

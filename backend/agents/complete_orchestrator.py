@@ -10,21 +10,75 @@ from datetime import datetime, timedelta
 import json
 import uuid
 
+import os
+
+try:
+    import socketio
+    _socketio_available = True
+except ImportError:
+    _socketio_available = False
+
 from .resume_agent import ResumeAgent
-from .interview_agent.core import InterviewAgent
+from .interview_agent import InterviewAgent
 from .performance_agent.core import PerformanceAgent
 from .communication_agent.core import CommunicationAgent
 from .onboarding_agent.core import OnboardingAgent
-from .leave_agent.core import LeaveAgent
-from .conflict_resolution_agent.core import ConflictResolutionAgent
-from .training_agent.core import TrainingAgent
-from .rewards_agent.core import RewardsAgent
-from .attendance_agent import AttendanceAgent
-from .engagement_agent import EmployeeEngagementAgent
-from ..ml.model_trainer import ModelInferenceEngine
-from ..ml.advanced_training.multi_ai_integration import MultiAIIntegration
-import os
-import socketio
+
+try:
+    from .leave_agent.core import LeaveAgent
+    _leave_agent_available = True
+except Exception:
+    LeaveAgent = None
+    _leave_agent_available = False
+
+try:
+    from .conflict_resolution_agent.core import ConflictResolutionAgent
+    _conflict_agent_available = True
+except Exception:
+    ConflictResolutionAgent = None
+    _conflict_agent_available = False
+
+try:
+    from .training_agent.core import TrainingAgent
+    _training_agent_available = True
+except Exception:
+    TrainingAgent = None
+    _training_agent_available = False
+
+try:
+    from .rewards_agent.core import RewardsAgent
+    _rewards_agent_available = True
+except Exception:
+    RewardsAgent = None
+    _rewards_agent_available = False
+
+try:
+    from .attendance_agent import AttendanceAgent
+    _attendance_agent_available = True
+except Exception:
+    AttendanceAgent = None
+    _attendance_agent_available = False
+
+try:
+    from .engagement_agent import EmployeeEngagementAgent
+    _engagement_agent_available = True
+except Exception:
+    EmployeeEngagementAgent = None
+    _engagement_agent_available = False
+
+try:
+    from ..ml.model_trainer import ModelInferenceEngine
+    _model_trainer_available = True
+except Exception:
+    ModelInferenceEngine = None
+    _model_trainer_available = False
+
+try:
+    from ..ml.advanced_training.multi_ai_integration import MultiAIIntegration
+    _multi_ai_available = True
+except Exception:
+    MultiAIIntegration = None
+    _multi_ai_available = False
 
 logger = logging.getLogger(__name__)
 

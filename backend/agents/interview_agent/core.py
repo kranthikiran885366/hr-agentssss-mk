@@ -6,15 +6,25 @@ Handles chat, voice, video interviews with full AI evaluation
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Union
-import openai
 from datetime import datetime, timedelta
 import json
 import uuid
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-import spacy
-from transformers import pipeline, AutoTokenizer, AutoModel
-import torch
+
+try:
+    import openai
+    _openai_available = True
+except ImportError:
+    _openai_available = False
+
+try:
+    import numpy as np
+    from sklearn.metrics.pairwise import cosine_similarity
+    import spacy
+    from transformers import pipeline, AutoTokenizer, AutoModel
+    import torch
+    _ml_available = True
+except ImportError:
+    _ml_available = False
 
 from ..base_agent import BaseAgent
 from .question_generator import QuestionGenerator

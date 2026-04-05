@@ -3,72 +3,51 @@ run = "npm run dev"
 
 [nix]
 channel = "stable-24_05"
-packages = ["bash", "ffmpeg-full", "freetype", "glibcLocales", "lcms2", "libGL", "libGLU", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib"]
+packages = ["bash", "cargo", "ffmpeg-full", "freetype", "glibcLocales", "lcms2", "libGL", "libGLU", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "rustc", "tcl", "tk", "zlib"]
 
 [deployment]
 run = ["sh", "-c", "npm run start"]
 build = ["sh", "-c", "npm run build"]
 
 [workflows]
-runButton = "Complete HR System"
+runButton = "Project"
 
 [[workflows.workflow]]
-name = "Start Backend"
-author = 45368595
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd backend && python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
-
-[[workflows.workflow]]
-name = "Start Frontend"
-author = 45368595
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev -- --port 3000"
-
-[[workflows.workflow]]
-name = "Run Full Stack"
-author = 45368595
+name = "Project"
 mode = "parallel"
+author = "agent"
 
 [[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd backend && python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev -- --port 3000"
+task = "workflow.run"
+args = "Backend API"
 
 [[workflows.workflow]]
-name = "Run Full Stack Fixed"
-author = 45368595
-mode = "parallel"
+name = "Backend API"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd backend && python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev -- --port 3000"
-
-[[workflows.workflow]]
-name = "Complete HR System"
-author = 45368595
-mode = "parallel"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd backend && python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev -- --port 3000"
+args = "python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
+waitForPort = 8000
 
 [[ports]]
 localPort = 3000
 externalPort = 80
+
+[[ports]]
+localPort = 8000
+externalPort = 8000
+
+[agent]
+expertMode = true
+
+[userenv]
+
+[userenv.shared]
+FASTAPI_BASE = "http://localhost:8000"
+BACKEND_CORS_ORIGINS = "http://localhost:5000"
+NODE_ENV = "development"
+NEXTAUTH_URL = "http://localhost:5000"

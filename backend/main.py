@@ -16,6 +16,8 @@ from typing import List, Optional
 
 from backend.database.sql_database import get_db, engine, Base, SessionLocal
 from backend.database.mongo_database import get_mongo_db
+from backend.models.sql_models import *
+from backend.models.performance_models import *
 from backend.agents.resume_agent import ResumeAgent
 from backend.agents.interview_agent import InterviewAgent
 from backend.agents.voice_agent import VoiceAgent
@@ -23,8 +25,6 @@ from backend.agents.communication_agent import CommunicationAgent
 from backend.agents.onboarding_agent import OnboardingAgent
 from backend.agents.orchestrator_agent import OrchestratorAgent
 from backend.agents.performance_agent.core import PerformanceAgent
-from backend.models.sql_models import *
-from backend.models.performance_models import *
 from backend.schemas.performance import *
 from backend.utils.config import get_settings
 from backend.api.exit_management import router as exit_management_router
@@ -43,13 +43,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware
+# CORS middleware - restrict origins for security (wildcard + credentials is unsafe)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 # Security

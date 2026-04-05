@@ -6,21 +6,51 @@ Uses real NLP models and ML algorithms
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any
-import spacy
-import pandas as pd
-import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics.pairwise import cosine_similarity
 import re
 import json
 from datetime import datetime
-import PyPDF2
-import docx
 from io import BytesIO
-import openai
-from transformers import pipeline, AutoTokenizer, AutoModel
-import torch
+
+try:
+    import spacy
+    _spacy_available = True
+except ImportError:
+    _spacy_available = False
+
+try:
+    import pandas as pd
+    import numpy as np
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.metrics.pairwise import cosine_similarity
+    _ml_available = True
+except ImportError:
+    _ml_available = False
+
+try:
+    import PyPDF2
+    _pypdf2_available = True
+except ImportError:
+    _pypdf2_available = False
+
+try:
+    import docx
+    _docx_available = True
+except ImportError:
+    _docx_available = False
+
+try:
+    import openai
+    _openai_available = True
+except ImportError:
+    _openai_available = False
+
+try:
+    from transformers import pipeline, AutoTokenizer, AutoModel
+    import torch
+    _transformers_available = True
+except ImportError:
+    _transformers_available = False
 
 from backend.database.sql_database import SessionLocal
 from backend.database.mongo_database import get_mongo_client
