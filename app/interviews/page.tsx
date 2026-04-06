@@ -9,27 +9,26 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
-type InterviewStatus = "active" | "completed" | "scheduled" | "cancelled"
-type InterviewType   = "technical" | "behavioral" | "screening" | "comprehensive"
-type InterviewMode   = "chat" | "voice" | "video"
+type InterviewStatus = "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED"
+type InterviewType   = "TECHNICAL" | "BEHAVIORAL" | "SCREENING" | "FINAL"
 
 interface InterviewSession {
   id: string
-  candidateName: string
-  candidateEmail: string
-  position: string
+  candidateId: string
+  candidate: { name: string; email: string }
+  jobId?: string
   type: InterviewType
-  mode: InterviewMode
   status: InterviewStatus
-  startTime: string
-  duration: number
+  startTime?: string
+  endTime?: string
   score: number
-  questionsAnswered: number
-  totalQuestions: number
-  scores: { communication: number; technical: number; cultural: number }
+  feedback?: string
+  transcript?: string
+  messages?: any[]
+  createdAt: string
 }
 
-const MOCK: InterviewSession[] = [
+const DEFAULT_SESSIONS: InterviewSession[] = [
   {
     id: "iv-001", candidateName: "Priya Sharma", candidateEmail: "priya@example.com",
     position: "Senior Frontend Engineer", type: "technical", mode: "chat", status: "completed",
@@ -75,17 +74,17 @@ const MOCK: InterviewSession[] = [
 ]
 
 const STATUS_PILL: Record<InterviewStatus, string> = {
-  active:    "pill pill-green",
-  completed: "pill pill-blue",
-  scheduled: "pill pill-amber",
-  cancelled: "pill pill-gray",
+  "IN_PROGRESS": "pill pill-green",
+  "COMPLETED":   "pill pill-blue",
+  "SCHEDULED":   "pill pill-amber",
+  "CANCELLED":   "pill pill-gray",
 }
 
 const TYPE_COLOR: Record<InterviewType, string> = {
-  technical:     "text-blue-400",
-  behavioral:    "text-purple-400",
-  screening:     "text-amber-400",
-  comprehensive: "text-emerald-400",
+  "TECHNICAL":   "text-blue-400",
+  "BEHAVIORAL":  "text-purple-400",
+  "SCREENING":   "text-amber-400",
+  "FINAL":       "text-emerald-400",
 }
 
 const MODE_ICON: Record<InterviewMode, any> = {
@@ -108,23 +107,54 @@ function ScoreBar({ value, label }: { value: number; label: string }) {
 }
 
 export default function InterviewsPage() {
-  const [sessions, setSessions] = useState<InterviewSession[]>(MOCK)
+  const [sessions, setSessions] = useState<InterviewSession[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
   const [filterType, setFilterType] = useState("all")
   const [expanded, setExpanded] = useState<string | null>(null)
   const [showNew, setShowNew] = useState(false)
 
+  useEffect(() => {
+    const loadSessions = async () => {
+      try {
+        const res = await fetch("/api/interviews/sessions")
+        if (res.ok) {
+          const data = await res.json()
+          setSessions(data || [])
+        }
+      } catch (error) {
+        console.error("Failed to load interviews:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadSessions()
+  }, [])
+
   const filtered = sessions.filter(s => {
     const q = search.toLowerCase()
     return (
-      (s.candidateName.toLowerCase().includes(q) || s.position.toLowerCase().includes(q)) &&
+      (s.candidate?.name.toLowerCase().includes(q) || (s.jobId || "").includes(q)) &&
       (filterStatus === "all" || s.status === filterStatus) &&
       (filterType === "all"   || s.type === filterType)
     )
   })
 
-  const formatDur = (sec: number) => `${Math.floor(sec/60)}m ${sec%60}s`
+  const formatDur = (sec: number) => sec > 0 ? `${Math.floor(sec/60)}m ${sec%60}s` : "—"
+
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-zinc-800 border-t-blue-500 rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-zinc-400">Loading interviews...</p>
+          </div>
+        </div>
+      </AppShell>
+    )
+  }
 
   return (
     <AppShell>
@@ -134,7 +164,7 @@ export default function InterviewsPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-xl font-bold tracking-tight text-white">Interview Sessions</h1>
-            <p className="text-sm text-zinc-500 mt-0.5">AI-powered screening and evaluation</p>
+            <p className="text-sm text-zinc-500 mt-0.5">{sessions.length} sessions · Real-time AI evaluation</p>
           </div>
           <button
             onClick={() => setShowNew(true)}
@@ -179,10 +209,10 @@ export default function InterviewsPage() {
             className="px-3 py-1.5 text-sm rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 outline-none"
           >
             <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-            <option value="scheduled">Scheduled</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="SCHEDULED">Scheduled</option>
+            <option value="CANCELLED">Cancelled</option>
           </select>
           <select
             value={filterType}
@@ -190,10 +220,10 @@ export default function InterviewsPage() {
             className="px-3 py-1.5 text-sm rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 outline-none"
           >
             <option value="all">All Types</option>
-            <option value="technical">Technical</option>
-            <option value="behavioral">Behavioral</option>
-            <option value="screening">Screening</option>
-            <option value="comprehensive">Comprehensive</option>
+            <option value="TECHNICAL">Technical</option>
+            <option value="BEHAVIORAL">Behavioral</option>
+            <option value="SCREENING">Screening</option>
+            <option value="FINAL">Final</option>
           </select>
           <span className="text-xs text-zinc-600">{filtered.length} sessions</span>
         </div>
@@ -230,20 +260,20 @@ export default function InterviewsPage() {
                       <td>
                         <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-                            {s.candidateName.charAt(0)}
+                            {s.candidate?.name?.charAt(0) || "?"}
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-zinc-200">{s.candidateName}</div>
-                            <div className="text-[11px] text-zinc-600">{s.candidateEmail}</div>
+                            <div className="text-sm font-medium text-zinc-200">{s.candidate?.name || "Unknown"}</div>
+                            <div className="text-[11px] text-zinc-600">{s.candidate?.email || "—"}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="text-sm text-zinc-400">{s.position}</td>
+                      <td className="text-sm text-zinc-400">{s.jobId || "—"}</td>
                       <td>
                         <div className="flex items-center gap-2">
-                          <span className={`text-xs font-medium capitalize ${TYPE_COLOR[s.type]}`}>{s.type}</span>
+                          <span className={`text-xs font-medium ${TYPE_COLOR[s.type]}`}>{s.type}</span>
                           <span className="text-zinc-700">·</span>
-                          <ModeIcon className="w-3.5 h-3.5 text-zinc-500" />
+                          <MessageSquare className="w-3.5 h-3.5 text-zinc-500" />
                         </div>
                       </td>
                       <td>
@@ -262,7 +292,7 @@ export default function InterviewsPage() {
                         )}
                       </td>
                       <td className="text-xs text-zinc-600">
-                        {new Date(s.startTime).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        {s.startTime ? new Date(s.startTime).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
                       </td>
                       <td onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-2">

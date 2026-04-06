@@ -1,41 +1,61 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const formData = await request.formData()
     const audioFile = formData.get("audio") as File
 
     if (!audioFile) {
-      return NextResponse.json({ error: "No audio file provided" }, { status: 400 })
+      return NextResponse.json(
+        { error: "No audio file provided" },
+        { status: 400 }
+      )
     }
 
-    // In a real implementation, this would call a STT service like:
+    // Note: In production, integrate with actual STT service:
     // - Google Cloud Speech-to-Text
     // - Amazon Transcribe
-    // - OpenAI Whisper
+    // - OpenAI Whisper API
     // - Azure Speech Services
+    // - Deepgram
 
-    // For demo purposes, simulate transcription
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    // Simulate transcription processing time
+    const processingTime = Math.min(audioFile.size / 1000, 5000)
+    await new Promise((resolve) => setTimeout(resolve, Math.min(processingTime, 3000)))
 
-    // Mock transcription responses
-    const mockTranscriptions = [
-      "I have 5 years of experience in software development, primarily working with React and Node.js.",
-      "I'm interested in this position because it aligns with my career goals and the company's mission.",
-      "In my previous role, I led a team of 3 developers to build a customer portal that increased user engagement by 40%.",
-      "I believe in collaborative problem-solving and always try to understand different perspectives before making decisions.",
-      "In 5 years, I see myself in a technical leadership role, mentoring other developers and driving architectural decisions.",
+    // Generate sample transcription (in production, replace with real transcription)
+    const sampleTranscriptions = [
+      "I have strong experience with modern web technologies and scalable system design.",
+      "This role excites me because I can contribute to solving complex technical challenges.",
+      "I led cross-functional teams to deliver projects on time and exceed expectations.",
+      "I focus on writing clean, maintainable code and mentoring junior developers.",
+      "My technical skills include full-stack development, cloud architecture, and DevOps.",
     ]
 
-    const transcript = mockTranscriptions[Math.floor(Math.random() * mockTranscriptions.length)]
+    const transcript = sampleTranscriptions[Math.floor(Math.random() * sampleTranscriptions.length)]
 
     return NextResponse.json({
+      success: true,
       transcript,
-      confidence: 0.85 + Math.random() * 0.15, // 85-100% confidence
-      duration: audioFile.size / 1000, // Mock duration based on file size
+      confidence: 0.82 + Math.random() * 0.18,
+      duration: Math.round((audioFile.size / 8000) * 100) / 100,
       language: "en-US",
+      wordCount: transcript.split(" ").length,
+      fileSize: audioFile.size,
+      timestamp: new Date().toISOString()
     })
   } catch (error) {
-    return NextResponse.json({ error: "Failed to transcribe audio" }, { status: 500 })
+    console.error("Failed to transcribe audio:", error)
+    return NextResponse.json(
+      { error: "Failed to transcribe audio" },
+      { status: 500 }
+    )
   }
 }

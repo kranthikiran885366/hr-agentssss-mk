@@ -1,67 +1,83 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import {
   Plus, Upload, Search, ChevronRight, Star, User,
   FileText, MessageSquare, CheckCircle, X, Clock, Filter
 } from "lucide-react"
 
-type Stage = "sourced" | "screening" | "interview" | "offer" | "hired"
+type Stage = "APPLIED" | "SCREENING" | "INTERVIEW" | "OFFER" | "HIRED" | "REJECTED"
 
 interface Candidate {
   id: string
   name: string
-  role: string
   email: string
-  source: string
+  phone?: string
+  status: Stage
+  source?: string
   score: number
-  stage: Stage
-  skills: string[]
-  applied: string
-  avatar: string
-  color: string
-  resumeScore?: number
-  interviewScore?: number
+  resume?: any
+  applications?: any[]
+  interviews?: any[]
+  createdAt: string
 }
 
 const STAGES: { id: Stage; label: string; color: string }[] = [
-  { id: "sourced",   label: "Sourced",   color: "text-zinc-400" },
-  { id: "screening", label: "Screening", color: "text-blue-400" },
-  { id: "interview", label: "Interview", color: "text-purple-400" },
-  { id: "offer",     label: "Offer",     color: "text-amber-400" },
-  { id: "hired",     label: "Hired",     color: "text-emerald-400" },
-]
-
-const INITIAL_CANDIDATES: Candidate[] = [
-  { id:"c1",  name:"Priya Sharma",    role:"Senior Frontend Eng",   email:"priya@example.com",   source:"LinkedIn",   score:87, stage:"interview", skills:["React","TypeScript","Node.js"],  applied:"Apr 3",  avatar:"P", color:"from-blue-600 to-blue-800",    resumeScore:89, interviewScore:87 },
-  { id:"c2",  name:"Marcus Williams", role:"Product Manager",        email:"marcus@example.com",  source:"Referral",   score:91, stage:"offer",     skills:["Strategy","Analytics","SQL"],    applied:"Apr 1",  avatar:"M", color:"from-purple-600 to-purple-800", resumeScore:93, interviewScore:91 },
-  { id:"c3",  name:"Aisha Patel",     role:"DevOps Engineer",       email:"aisha@example.com",   source:"Indeed",     score:76, stage:"screening",  skills:["K8s","AWS","Terraform"],         applied:"Apr 5",  avatar:"A", color:"from-emerald-600 to-emerald-800",resumeScore:78, interviewScore:0 },
-  { id:"c4",  name:"Daniel Kim",      role:"Data Scientist",         email:"daniel@example.com",  source:"LinkedIn",   score:95, stage:"hired",     skills:["Python","ML","Spark"],           applied:"Mar 28", avatar:"D", color:"from-amber-600 to-amber-800",   resumeScore:96, interviewScore:95 },
-  { id:"c5",  name:"Sofia Müller",    role:"UX Designer",            email:"sofia@example.com",   source:"Portfolio",  score:82, stage:"interview", skills:["Figma","Research","Design Sys"], applied:"Apr 4",  avatar:"S", color:"from-rose-600 to-rose-800",    resumeScore:84, interviewScore:82 },
-  { id:"c6",  name:"Raj Krishnan",    role:"Backend Engineer",       email:"raj@example.com",     source:"LinkedIn",   score:79, stage:"sourced",   skills:["Java","Kafka","Postgres"],       applied:"Apr 6",  avatar:"R", color:"from-blue-600 to-blue-800",    resumeScore:0, interviewScore:0 },
-  { id:"c7",  name:"Mei Lin",         role:"ML Engineer",            email:"mei@example.com",     source:"GitHub",     score:93, stage:"screening",  skills:["PyTorch","CUDA","LLMs"],         applied:"Apr 5",  avatar:"L", color:"from-violet-600 to-violet-800", resumeScore:94, interviewScore:0 },
-  { id:"c8",  name:"Omar Hassan",     role:"Senior Frontend Eng",   email:"omar@example.com",    source:"AngelList",  score:85, stage:"offer",     skills:["Vue","GraphQL","AWS"],           applied:"Apr 2",  avatar:"O", color:"from-sky-600 to-sky-800",      resumeScore:87, interviewScore:85 },
+  { id: "APPLIED",   label: "Applied",   color: "text-zinc-400" },
+  { id: "SCREENING", label: "Screening", color: "text-blue-400" },
+  { id: "INTERVIEW", label: "Interview", color: "text-purple-400" },
+  { id: "OFFER",     label: "Offer",     color: "text-amber-400" },
+  { id: "HIRED",     label: "Hired",     color: "text-emerald-400" },
 ]
 
 export default function PipelinePage() {
-  const [candidates, setCandidates] = useState<Candidate[]>(INITIAL_CANDIDATES)
+  const [candidates, setCandidates] = useState<Candidate[]>([])
+  const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Candidate | null>(null)
   const [search, setSearch] = useState("")
   const [showUpload, setShowUpload] = useState(false)
   const [dragging, setDragging] = useState<string | null>(null)
 
+  useEffect(() => {
+    const loadCandidates = async () => {
+      try {
+        const res = await fetch("/api/talent-acquisition/candidates")
+        if (res.ok) {
+          const data = await res.json()
+          setCandidates(data.items || [])
+        }
+      } catch (error) {
+        console.error("Failed to load candidates:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadCandidates()
+  }, [])
+
   const filtered = candidates.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.role.toLowerCase().includes(search.toLowerCase())
+    c.email.toLowerCase().includes(search.toLowerCase())
   )
 
-  const byStage = (stage: Stage) => filtered.filter(c => c.stage === stage)
+  const byStage = (stage: Stage) => filtered.filter(c => c.status === stage)
 
-  const moveCandidate = (candidateId: string, targetStage: Stage) => {
-    setCandidates(prev =>
-      prev.map(c => c.id === candidateId ? { ...c, stage: targetStage } : c)
-    )
+  const moveCandidate = async (candidateId: string, targetStage: Stage) => {
+    try {
+      const res = await fetch("/api/talent-acquisition/candidates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update-status", candidateId, status: targetStage })
+      })
+      if (res.ok) {
+        setCandidates(prev =>
+          prev.map(c => c.id === candidateId ? { ...c, status: targetStage } : c)
+        )
+      }
+    } catch (error) {
+      console.error("Failed to update candidate:", error)
+    }
     setDragging(null)
   }
 
@@ -73,6 +89,19 @@ export default function PipelinePage() {
     hired:     "bg-emerald-500/20 text-emerald-300",
   }
 
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-zinc-800 border-t-blue-500 rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-zinc-400">Loading candidates...</p>
+          </div>
+        </div>
+      </AppShell>
+    )
+  }
+
   return (
     <AppShell>
       <div className="flex flex-col h-screen px-6 py-6">
@@ -81,7 +110,7 @@ export default function PipelinePage() {
         <div className="flex items-center justify-between mb-6 flex-shrink-0">
           <div>
             <h1 className="text-xl font-bold tracking-tight text-white">Talent Pipeline</h1>
-            <p className="text-sm text-zinc-500 mt-0.5">{candidates.length} candidates tracked · AI scoring enabled</p>
+            <p className="text-sm text-zinc-500 mt-0.5">{candidates.length} candidates · Real-time AI scoring</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -157,12 +186,12 @@ export default function PipelinePage() {
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${c.color} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>
-                          {c.avatar}
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                          {c.name.charAt(0)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-xs font-semibold text-zinc-200 truncate">{c.name}</div>
-                          <div className="text-[10px] text-zinc-600 truncate">{c.role}</div>
+                          <div className="text-[10px] text-zinc-600 truncate">{c.email}</div>
                         </div>
                       </div>
 
@@ -171,25 +200,20 @@ export default function PipelinePage() {
                           <div className="progress-track flex-1">
                             <div
                               className={`progress-fill ${c.score >= 90 ? "green" : c.score >= 75 ? "" : "amber"}`}
-                              style={{ width: `${c.score}%` }}
+                              style={{ width: `${Math.min(100, c.score)}%` }}
                             />
                           </div>
-                          <span className="text-[10px] font-mono text-zinc-500">{c.score}</span>
+                          <span className="text-[10px] font-mono text-zinc-500">{c.score.toFixed(0)}</span>
                         </div>
                       )}
 
                       <div className="flex items-center gap-1 flex-wrap">
-                        {c.skills.slice(0, 2).map(sk => (
-                          <span key={sk} className="text-[9px] text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">{sk}</span>
-                        ))}
-                        {c.skills.length > 2 && (
-                          <span className="text-[9px] text-zinc-700">+{c.skills.length - 2}</span>
-                        )}
+                        <span className="text-[9px] text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">{c.source || "Direct"}</span>
                       </div>
 
                       <div className="flex items-center justify-between mt-2">
-                        <span className="text-[9px] text-zinc-700">{c.source} · {c.applied}</span>
-                        {stage.id !== "hired" && stage.id !== "offer" && (
+                        <span className="text-[9px] text-zinc-700">{new Date(c.createdAt).toLocaleDateString()}</span>
+                        {stage.id !== "HIRED" && stage.id !== "OFFER" && (
                           <button
                             onClick={e => {
                               e.stopPropagation()
@@ -226,12 +250,12 @@ export default function PipelinePage() {
             <div className="px-5 py-5">
               {/* Avatar & name */}
               <div className="flex items-center gap-4 mb-5">
-                <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${selected.color} flex items-center justify-center text-lg font-bold text-white`}>
-                  {selected.avatar}
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-lg font-bold text-white">
+                  {selected.name.charAt(0)}
                 </div>
                 <div>
                   <h4 className="text-base font-bold text-white">{selected.name}</h4>
-                  <p className="text-sm text-zinc-500">{selected.role}</p>
+                  <p className="text-sm text-zinc-500">{selected.phone || "No phone"}</p>
                   <p className="text-xs text-zinc-700">{selected.email}</p>
                 </div>
               </div>
@@ -245,10 +269,10 @@ export default function PipelinePage() {
                       key={s.id}
                       onClick={() => {
                         moveCandidate(selected.id, s.id)
-                        setSelected(c => c ? { ...c, stage: s.id } : null)
+                        setSelected(c => c ? { ...c, status: s.id } : null)
                       }}
                       className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                        selected.stage === s.id
+                        selected.status === s.id
                           ? "border-blue-500 bg-blue-500/20 text-blue-300"
                           : "border-zinc-800 text-zinc-500 hover:border-zinc-600"
                       }`}
@@ -264,7 +288,7 @@ export default function PipelinePage() {
                 <div className="border border-zinc-800 rounded-xl p-4 mb-4">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-3">AI Scores</p>
                   <div className="space-y-3">
-                    {selected.resumeScore ? (
+                    {selected.resume && (
                       <div className="flex items-center gap-3">
                         <FileText className="w-3.5 h-3.5 text-zinc-600 flex-shrink-0" />
                         <div className="flex-1">
