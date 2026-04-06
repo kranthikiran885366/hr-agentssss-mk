@@ -1,26 +1,50 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const { text, voice = "en-US-Standard-A" } = await request.json()
 
-    // In a real implementation, this would call a TTS service like:
+    if (!text) {
+      return NextResponse.json(
+        { error: "text is required" },
+        { status: 400 }
+      )
+    }
+
+    // Note: In production, integrate with actual TTS service:
     // - Google Cloud Text-to-Speech
     // - Amazon Polly
     // - ElevenLabs
     // - Azure Cognitive Services
+    // - OpenAI TTS API
 
-    // For demo purposes, we'll simulate the API response
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    // Simulate processing delay
+    await new Promise((resolve) => setTimeout(resolve, 200))
 
-    // Return mock audio data
+    // Estimate audio duration (roughly 0.15 seconds per word)
+    const wordCount = text.split(" ").length
+    const estimatedDuration = wordCount * 0.15
+
     return NextResponse.json({
-      audioUrl: "/api/voice/audio/sample.mp3", // Mock audio URL
-      duration: text.length * 0.1, // Estimate duration
+      success: true,
+      audioUrl: `/api/voice/audio/${Date.now()}.mp3`,
+      duration: Math.round(estimatedDuration * 100) / 100,
       voice,
-      text,
+      characterCount: text.length,
+      timestamp: new Date().toISOString()
     })
   } catch (error) {
-    return NextResponse.json({ error: "Failed to synthesize speech" }, { status: 500 })
+    console.error("Failed to synthesize speech:", error)
+    return NextResponse.json(
+      { error: "Failed to synthesize speech" },
+      { status: 500 }
+    )
   }
 }

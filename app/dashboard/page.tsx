@@ -8,53 +8,110 @@ import {
   Clock, CheckCircle, AlertCircle, GitBranch
 } from "lucide-react"
 
-const ACTIVITY_FEED = [
-  { id:1,  time:"2 min ago",  actor:"Resume Agent",   action:"Scored 12 new applications for Senior Engineer",  status:"done",    icon:FileText,     color:"blue" },
-  { id:2,  time:"8 min ago",  actor:"Interview AI",   action:"Completed screening call with Priya Sharma (87%)", status:"done",    icon:MessageSquare,color:"purple" },
-  { id:3,  time:"14 min ago", actor:"Onboard Agent",  action:"Provisioned accounts for Marcus Johnson",           status:"done",    icon:CheckCircle,  color:"emerald" },
-  { id:4,  time:"31 min ago", actor:"Perf Agent",     action:"Sent quarterly review reminders to 42 managers",   status:"done",    icon:TrendingUp,   color:"amber" },
-  { id:5,  time:"1hr ago",    actor:"Resume Agent",   action:"Flagged duplicate application — auto-merged",       status:"alert",   icon:AlertCircle,  color:"rose" },
-  { id:6,  time:"2hr ago",    actor:"Interview AI",   action:"No-show detected — rescheduled automatically",     status:"alert",   icon:Clock,        color:"amber" },
-  { id:7,  time:"3hr ago",    actor:"Onboard Agent",  action:"Completed 5/24 onboarding steps for Sarah Chen",   status:"running", icon:Activity,     color:"blue" },
-  { id:8,  time:"5hr ago",    actor:"Interview AI",   action:"Generated 3 offer letters pending approval",        status:"done",    icon:FileText,     color:"emerald" },
-]
-
-const AGENT_MODULES = [
-  { name: "Resume Agent",    tasks: 47,  queue: 12, status: "active", latency: "120ms" },
-  { name: "Interview AI",    tasks: 23,  queue: 4,  status: "active", latency: "89ms"  },
-  { name: "Onboard Agent",   tasks: 8,   queue: 2,  status: "active", latency: "210ms" },
-  { name: "Perf Agent",      tasks: 156, queue: 0,  status: "active", latency: "55ms"  },
-  { name: "Comms Agent",     tasks: 342, queue: 18, status: "active", latency: "67ms"  },
-  { name: "Exit Agent",      tasks: 2,   queue: 1,  status: "active", latency: "180ms" },
-]
-
 interface Metric {
   label: string; value: string; sub: string; trend: number; icon: any; color: string
 }
 
+interface ActivityItem {
+  id: number
+  time: string
+  actor: string
+  action: string
+  status: "done" | "alert" | "running"
+  icon: any
+  color: string
+}
+
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<Metric[]>([
-    { label: "Total Employees",   value: "2,847", sub: "Active headcount",    trend: 4.2,  icon: Users,         color: "blue" },
-    { label: "Active Processes",  value: "156",   sub: "Running automatically",trend: 12.1, icon: Bot,           color: "purple" },
-    { label: "Automation Rate",   value: "98.7%", sub: "Fully automated",      trend: 1.3,  icon: Zap,           color: "emerald" },
-    { label: "AI Interviews",     value: "23",    sub: "Today",                trend: 8.5,  icon: MessageSquare, color: "amber" },
-    { label: "Onboardings",       value: "8",     sub: "In progress",          trend: 2.1,  icon: CheckCircle,   color: "blue" },
-    { label: "Pipeline Active",   value: "94",    sub: "Candidates tracked",   trend: 15.3, icon: GitBranch,     color: "rose" },
+    { label: "Total Employees",   value: "0", sub: "Active headcount",    trend: 0,  icon: Users,         color: "blue" },
+    { label: "Active Processes",  value: "0",   sub: "Running automatically",trend: 0, icon: Bot,           color: "purple" },
+    { label: "Active Candidates",   value: "0", sub: "In pipeline",      trend: 0,  icon: Zap,           color: "emerald" },
+    { label: "Interviews",     value: "0",    sub: "This week",                trend: 0,  icon: MessageSquare, color: "amber" },
+    { label: "Jobs Open",       value: "0",     sub: "Currently hiring",          trend: 0,  icon: CheckCircle,   color: "blue" },
+    { label: "Onboardings",   value: "0",    sub: "In progress",   trend: 0, icon: GitBranch,     color: "rose" },
   ])
+  const [activityFeed, setActivityFeed] = useState<ActivityItem[]>([])
+  const [agentModules, setAgentModules] = useState<any[]>([])
   const [lastUpdated, setLastUpdated] = useState(new Date())
   const [loading, setLoading] = useState(false)
 
-  const refresh = async () => {
+  const loadDashboard = async () => {
     setLoading(true)
     try {
-      const res = await fetch("http://localhost:8000/api/v1/analytics/dashboard")
-      if (res.ok) {
-        const data = await res.json()
-        // Update with real data if available
-      }
-    } catch {}
+      const [candidatesRes, interviewRes, jobsRes, usersRes] = await Promise.all([
+        fetch("/api/talent-acquisition/candidates"),
+        fetch("/api/interviews/sessions"),
+        fetch("/api/talent-acquisition/jobs"),
+        fetch("/api/users")
+      ])
+
+      const candidatesData = candidatesRes.ok ? await candidatesRes.json() : { total: 0 }
+      const interviewsData = interviewRes.ok ? await interviewRes.json() : []
+      const jobsData = jobsRes.ok ? await jobsRes.json() : { total: 0 }
+      const usersData = usersRes.ok ? await usersRes.json() : []
+
+      const activeCandidates = candidatesData.items?.filter((c: any) => c.status === "SCREENING" || c.status === "INTERVIEW") || []
+      const activeInterviews = interviewsData.filter((i: any) => i.status === "IN_PROGRESS") || []
+      const openJobs = jobsData.items?.filter((j: any) => j.status === "OPEN") || []
+
+      setMetrics([
+        { label: "Total Employees", value: usersData.length?.toString() || "0", sub: "Active headcount", trend: 0, icon: Users, color: "blue" },
+        { label: "Active Processes", value: activeInterviews.length?.toString() || "0", sub: "Running now", trend: 0, icon: Bot, color: "purple" },
+        { label: "Active Candidates", value: activeCandidates.length?.toString() || "0", sub: "In pipeline", trend: 0, icon: Zap, color: "emerald" },
+        { label: "Interviews", value: interviewsData.length?.toString() || "0", sub: "Sessions tracked", trend: 0, icon: MessageSquare, color: "amber" },
+        { label: "Jobs Open", value: openJobs.length?.toString() || "0", sub: "Currently hiring", trend: 0, icon: CheckCircle, color: "blue" },
+        { label: "Pipeline Candidates", value: candidatesData.total?.toString() || "0", sub: "Total tracked", trend: 0, icon: GitBranch, color: "rose" },
+      ])
+
+      // Create activity feed from real data
+      const activities: ActivityItem[] = []
+      interviewsData.slice(0, 4).forEach((interview: any, idx: number) => {
+        activities.push({
+          id: idx + 1,
+          time: new Date(interview.createdAt).toLocaleDateString(),
+          actor: "Interview AI",
+          action: `${interview.status === "COMPLETED" ? "Completed" : "Started"} interview with ${interview.candidate?.name}`,
+          status: interview.status === "COMPLETED" ? "done" : "running",
+          icon: MessageSquare,
+          color: interview.status === "COMPLETED" ? "emerald" : "blue"
+        })
+      })
+
+      candidatesData.items?.slice(0, 3).forEach((candidate: any, idx: number) => {
+        activities.push({
+          id: activities.length + 1,
+          time: new Date(candidate.createdAt).toLocaleDateString(),
+          actor: "Resume Agent",
+          action: `${candidate.name} applied - Score: ${(candidate.score * 100).toFixed(0)}%`,
+          status: "done",
+          icon: FileText,
+          color: "blue"
+        })
+      })
+
+      setActivityFeed(activities.slice(0, 8))
+
+      setAgentModules([
+        { name: "Resume Agent", tasks: candidatesData.total || 0, queue: 0, status: "active", latency: "120ms" },
+        { name: "Interview AI", tasks: interviewsData.length || 0, queue: 0, status: "active", latency: "89ms" },
+        { name: "Candidates", tasks: activeCandidates.length || 0, queue: 0, status: "active", latency: "210ms" },
+        { name: "Jobs", tasks: openJobs.length || 0, queue: 0, status: "active", latency: "55ms" },
+        { name: "Users", tasks: usersData.length || 0, queue: 0, status: "active", latency: "67ms" },
+      ])
+    } catch (error) {
+      console.error("Error loading dashboard:", error)
+    }
     setLastUpdated(new Date())
     setTimeout(() => setLoading(false), 600)
+  }
+
+  useEffect(() => {
+    loadDashboard()
+  }, [])
+
+  const refresh = () => {
+    loadDashboard()
   }
 
   const COLOR_MAP: Record<string, string> = {
@@ -132,7 +189,7 @@ export default function DashboardPage() {
             </div>
             <div className="border border-zinc-800 rounded-xl overflow-hidden">
               <div className="timeline px-5 py-4">
-                {ACTIVITY_FEED.map((item, i) => {
+                {activityFeed.map((item, i) => {
                   const Icon = item.icon
                   const ICON_MAP: Record<string, string> = {
                     blue: "text-blue-400 bg-blue-500/10",
@@ -171,7 +228,7 @@ export default function DashboardPage() {
               <span className="pill pill-green">6/6 Live</span>
             </div>
             <div className="border border-zinc-800 rounded-xl overflow-hidden">
-              {AGENT_MODULES.map((agent, i) => (
+              {agentModules.map((agent, i) => (
                 <div key={i} className="data-row flex-col items-start gap-2">
                   <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-2">

@@ -1,12 +1,9 @@
-import NextAuth from 'next-auth';
+import NextAuth, { type NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from './db';
-import { compare } from 'bcryptjs';
+import { compare, hash } from 'bcryptjs';
 
-export const authOptions = {
-  // Configure one or more authentication providers
-  adapter: PrismaAdapter(prisma),
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -19,7 +16,6 @@ export const authOptions = {
           throw new Error('Please enter your email and password');
         }
 
-        // Find user by email
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
           select: {
@@ -37,39 +33,35 @@ export const authOptions = {
           throw new Error('Invalid email or password');
         }
 
-        // Verify password
         const isValid = await compare(credentials.password, user.password);
         if (!isValid) {
           throw new Error('Invalid email or password');
         }
 
-        // Return user object without password
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { password, ...userWithoutPassword } = user;
-        return userWithoutPassword;
+        const { password: _, ...userWithoutPassword } = user;
+        return userWithoutPassword as any;
       }
     })
   ],
   callbacks: {
-    async jwt({ token, user }: { token: any; user: any }) {
-      // Initial sign in
+    async jwt({ token, user }) {
       if (user) {
-        token.role = user.role;
+        token.role = (user as any).role;
         token.id = user.id;
       }
       return token;
     },
-    async session({ session, token }: { session: any; token: any }) {
+    async session({ session, token }) {
       if (session?.user) {
-        session.user.role = token.role;
-        session.user.id = token.id;
+        session.user.role = token.role as string;
+        session.user.id = token.id as string;
       }
       return session;
     },
   },
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   pages: {
     signIn: '/auth/signin',
@@ -77,36 +69,37 @@ export const authOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
-} as const;
+};
 
-// Helper function to get server session
-export async function getServerSession() {
-  return await import('next-auth').then((mod) => 
-    mod.getServerSession(authOptions)
-  );
+// Real authentication function
+export async function authenticateUser(email: string, password: string) {
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      password: true,
+      role: true,
+      department: true,
+      image: true
+    }
+  });
+
+  if (!user || !user.password) {
+    return null;
+  }
+
+  const isValid = await compare(password, user.password);
+  if (!isValid) {
+    return null;
+  }
+
+  const { password: _, ...userWithoutPassword } = user;
+  return userWithoutPassword;
 }
 
-// Helper function to protect API routes
-export function withAuth(handler: any) {
-  return async (req: any, res: any) => {
-    const session = await getServerSession();
-    if (!session) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-    return handler(req, res, session.user);
-  };
-}
-
-// Helper function to check user role
-export function withRole(roles: string[]) {
-  return async (req: any, res: any, next: any) => {
-    const session = await getServerSession();
-    if (!session) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-    if (!roles.includes(session.user.role)) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-    return next();
-  };
+// Hash password for signup
+export async function hashPassword(password: string) {
+  return hash(password, 10);
 }

@@ -15,9 +15,16 @@ model User {
   id            String    @id @default(uuid())
   name          String?
   email         String    @unique
+  password      String?   // For password hashing
   emailVerified DateTime? @map("email_verified")
   image         String?
   role          UserRole  @default(USER)
+  department    String?
+  position      String?
+  phone         String?
+  bio           String?
+  status        String    @default("active")
+  lastActiveAt  DateTime? @map("last_active_at")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   
@@ -28,6 +35,17 @@ model User {
   // Training needs
   trainingNeeds        TrainingNeedsAnalysis[] @relation("EmployeeTrainingNeeds")
   createdTrainingNeeds TrainingNeedsAnalysis[] @relation("CreatedTrainingNeeds")
+  
+  // Interview relations
+  interviews    InterviewSession[] @relation("InterviewConductor")
+  conductedBy   InterviewSession[] @relation("CandidateUser")
+  
+  // Resumes
+  resumes       Resume[]
+  
+  // Performance
+  performanceReviews PerformanceReview[]
+  goals         PerformanceGoal[]
   
   @@map("users")
 }
@@ -102,6 +120,182 @@ model TrainingNeedsSkill {
   @@map("training_needs_skills")
 }
 
+// Job model for open positions
+model Job {
+  id            String   @id @default(uuid())
+  title         String
+  description   String   @db.Text
+  department    String
+  salaryMin     Int?
+  salaryMax     Int?
+  status        JobStatus @default(OPEN)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  applications  JobApplication[]
+  
+  @@map("jobs")
+}
+
+// Candidate model
+model Candidate {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  phone         String?
+  resume        Resume?
+  status        CandidateStatus @default(APPLIED)
+  source        String?  // Where they came from
+  score         Float    @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  applications  JobApplication[]
+  interviews    InterviewSession[]
+  
+  @@map("candidates")
+}
+
+// Resume model
+model Resume {
+  id            String   @id @default(uuid())
+  candidateId   String   @map("candidate_id")
+  userId        String?  @map("user_id")
+  content       String   @db.Text
+  analysis      Json?    // AI analysis results
+  score         Float    @default(0)
+  uploadedAt    DateTime @default(now()) @map("uploaded_at")
+  
+  // Relations
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@unique([candidateId])
+  @@map("resumes")
+}
+
+// Job Application
+model JobApplication {
+  id            String   @id @default(uuid())
+  jobId         String   @map("job_id")
+  candidateId   String   @map("candidate_id")
+  status        ApplicationStatus @default(APPLIED)
+  appliedAt     DateTime @default(now()) @map("applied_at")
+  
+  // Relations
+  job           Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  @@unique([jobId, candidateId])
+  @@map("job_applications")
+}
+
+// Interview Session
+model InterviewSession {
+  id            String   @id @default(uuid())
+  candidateId   String   @map("candidate_id")
+  conductorId   String?  @map("conductor_id")
+  jobId         String?  @map("job_id")
+  type          InterviewType
+  status        InterviewStatus @default(SCHEDULED)
+  startTime     DateTime?
+  endTime       DateTime?
+  score         Float    @default(0)
+  feedback      String?  @db.Text
+  recording     String?  // S3 URL to recording
+  transcript    String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  candidate     Candidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  conductor     User?      @relation("InterviewConductor", fields: [conductorId], references: [id], onDelete: SetNull)
+  candidateUser User?      @relation("CandidateUser", fields: [candidateId], references: [id], onDelete: SetNull)
+  messages      InterviewMessage[]
+  
+  @@map("interview_sessions")
+}
+
+// Interview Messages for conversation history
+model InterviewMessage {
+  id            String   @id @default(uuid())
+  sessionId     String   @map("session_id")
+  role          String   // "candidate" or "interviewer"
+  content       String   @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  session       InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  @@map("interview_messages")
+}
+
+// Performance Review
+model PerformanceReview {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  reviewPeriod  String
+  rating        Float
+  feedback      String?  @db.Text
+  goals         String?  @db.Text
+  nextSteps     String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("performance_reviews")
+}
+
+// Performance Goals
+model PerformanceGoal {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  title         String
+  description   String?  @db.Text
+  status        GoalStatus @default(IN_PROGRESS)
+  targetDate    DateTime?
+  progress      Float    @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("performance_goals")
+}
+
+// Onboarding Task
+model OnboardingTask {
+  id            String   @id @default(uuid())
+  employeeId    String   @map("employee_id")
+  title         String
+  description   String?
+  status        OnboardingStatus @default(PENDING)
+  dueDate       DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  @@map("onboarding_tasks")
+}
+
+// Audit Log
+model AuditLog {
+  id            String   @id @default(uuid())
+  action        String
+  entity        String
+  entityId      String   @map("entity_id")
+  userId        String?  @map("user_id")
+  changes       Json?
+  timestamp     DateTime @default(now())
+  
+  @@map("audit_logs")
+}
+
 // Enums
 enum UserRole {
   ADMIN
@@ -122,4 +316,55 @@ enum TrainingPriority {
   MEDIUM
   HIGH
   CRITICAL
+}
+
+enum JobStatus {
+  OPEN
+  CLOSED
+  ON_HOLD
+}
+
+enum CandidateStatus {
+  APPLIED
+  SCREENING
+  INTERVIEW
+  OFFER
+  HIRED
+  REJECTED
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SCREENING
+  INTERVIEW
+  OFFER
+  ACCEPTED
+  REJECTED
+}
+
+enum InterviewType {
+  SCREENING
+  TECHNICAL
+  BEHAVIORAL
+  FINAL
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum GoalStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum OnboardingStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
 }

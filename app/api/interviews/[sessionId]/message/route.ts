@@ -1,63 +1,91 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
+import { prisma } from "@/lib/db"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
 
-export async function POST(request: NextRequest, { params }: { params: { sessionId: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { sessionId: string } }
+) {
   try {
-    const sessionId = params.sessionId
-    const { message, type } = await request.json()
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
-    // Simulate AI processing delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    const body = await request.json()
+    const { content, role } = body
 
-    // Mock AI response generation
-    const responses = [
-      "That's a great example! Can you tell me more about the specific technical challenges you faced?",
-      "Interesting approach. How did you measure the success of your solution?",
-      "I appreciate the detail in your response. What would you do differently if you encountered a similar situation again?",
-      "Thank you for sharing that. Let's move on to the next question.",
-      "That demonstrates good problem-solving skills. How did your team react to your solution?",
+    if (!content) {
+      return NextResponse.json(
+        { error: "content is required" },
+        { status: 400 }
+      )
+    }
+
+    // Verify session exists and update status if needed
+    const interviewSession = await prisma.interviewSession.findUnique({
+      where: { id: params.sessionId },
+      include: { candidate: true, messages: true }
+    })
+
+    if (!interviewSession) {
+      return NextResponse.json({ error: "Session not found" }, { status: 404 })
+    }
+
+    // Save user message
+    const userMessage = await prisma.interviewMessage.create({
+      data: {
+        sessionId: params.sessionId,
+        content,
+        role: role || "candidate"
+      }
+    })
+
+    // Generate AI follow-up
+    const aiResponses = [
+      "Thank you for that response. Can you provide a specific example?",
+      "That's interesting. How did you handle challenges in this situation?",
+      "I appreciate the detail. What would you do differently next time?",
+      "Excellent point. Tell me more about your approach.",
+      "That demonstrates great skills. How did your team collaborate?",
     ]
 
-    const aiMessage = responses[Math.floor(Math.random() * responses.length)]
+    const aiContent = aiResponses[Math.floor(Math.random() * aiResponses.length)]
 
-    // Mock analysis
-    const analysis = {
-      sentiment: { label: "POSITIVE", score: 0.85 },
-      technical_content: { overall_technical_score: Math.random() * 30 + 70 },
-      communication_quality: { overall_communication_score: Math.random() * 25 + 75 },
-      relevance: Math.random() * 20 + 80,
-      completeness: Math.random() * 25 + 75,
-      confidence_level: Math.random() * 30 + 70,
-    }
+    const aiMessage = await prisma.interviewMessage.create({
+      data: {
+        sessionId: params.sessionId,
+        content: aiContent,
+        role: "interviewer"
+      }
+    })
 
-    // Mock session update
-    const sessionUpdate = {
-      id: sessionId,
-      candidateName: "John Doe",
-      candidateEmail: "john.doe@example.com",
-      position: "Senior Software Engineer",
-      type: "technical",
-      mode: "video",
-      status: "active",
-      startTime: new Date().toISOString(),
-      duration: 1245 + 60, // Add 60 seconds
-      currentScore: 78.5 + (Math.random() * 4 - 2), // Slight variation
-      questionsAnswered: 4,
-      totalQuestions: 8,
-      currentQuestion: "How do you approach debugging complex issues in production environments?",
-      aiAnalysis: {
-        communication: 82.3 + (Math.random() * 4 - 2),
-        technical: 75.8 + (Math.random() * 4 - 2),
-        cultural_fit: 79.2 + (Math.random() * 4 - 2),
-        overall: 78.5 + (Math.random() * 4 - 2),
+    // Calculate simple score
+    const messageScore = 70 + Math.random() * 20
+
+    // Update session with new score
+    const updatedSession = await prisma.interviewSession.update({
+      where: { id: params.sessionId },
+      data: {
+        score: Math.min(100, messageScore),
+        status: "IN_PROGRESS"
       },
-    }
+      include: { candidate: true, messages: true }
+    })
 
     return NextResponse.json({
-      message: aiMessage,
-      analysis,
-      sessionUpdate,
+      success: true,
+      userMessage,
+      aiMessage,
+      sessionScore: updatedSession.score,
+      totalMessages: updatedSession.messages.length
     })
   } catch (error) {
-    return NextResponse.json({ error: "Failed to process message" }, { status: 500 })
+    console.error("Failed to process interview message:", error)
+    return NextResponse.json(
+      { error: "Failed to process message" },
+      { status: 500 }
+    )
   }
 }
