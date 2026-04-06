@@ -5,11 +5,11 @@ import { Toaster } from "@/components/ui/toaster"
 import { Providers } from "@/components/providers/providers"
 import type { Metadata } from "next"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 
 export const metadata: Metadata = {
-  title: "HR Agent System",
-  description: "AI-powered HR automation with real agents",
+  title: "HRAgent — AI-Powered HR System",
+  description: "Automate your entire employee lifecycle with AI agents",
 }
 
 export default function RootLayout({
@@ -18,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" className="dark">
+      <body className={`${inter.variable} font-sans antialiased bg-[#09090B] text-zinc-100`}>
         <Providers>
           {children}
         </Providers>
