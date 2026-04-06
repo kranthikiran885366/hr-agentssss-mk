@@ -185,7 +185,7 @@ export default function DashboardPage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-zinc-300">Live Activity Feed</h2>
-              <span className="text-xs text-zinc-600">{ACTIVITY_FEED.length} events today</span>
+              <span className="text-xs text-zinc-600">{activityFeed.length} events today</span>
             </div>
             <div className="border border-zinc-800 rounded-xl overflow-hidden">
               <div className="timeline px-5 py-4">
