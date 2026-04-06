@@ -1,362 +1,230 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { HRDashboard } from "@/components/hr-dashboard/HRDashboard"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
+import { AppShell } from "@/components/layout/app-shell"
 import {
-  Users,
-  Bot,
-  MessageSquare,
-  Video,
-  Calendar,
-  FileText,
-  Shield,
-  Zap,
-  CheckCircle,
-  TrendingUp,
-  Activity,
-  RefreshCw,
+  Users, MessageSquare, Zap, TrendingUp, Activity,
+  RefreshCw, ArrowUp, ArrowDown, Bot, FileText,
+  Clock, CheckCircle, AlertCircle, GitBranch
 } from "lucide-react"
-import { RequisitionApproval } from "@/components/talent-acquisition/requisition-approval"
-import { DiversityReport } from "@/components/talent-acquisition/diversity-report"
-import { CandidatePipeline } from "@/components/talent-acquisition/candidate-pipeline"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { NotificationCenter } from "./NotificationCenter"
-import { AuditLogViewer } from "./AuditLogViewer"
-import { CandidateProfile } from "@/components/talent-acquisition/CandidateProfile"
 
-interface DashboardMetrics {
-  totalEmployees: number
-  activeProcesses: number
-  automationRate: number
-  systemHealth: string
-  todayStats: {
-    interviews: number
-    onboarding: number
-    leaves: number
-    communications: number
-  }
-  weeklyTrends: {
-    hiring: number
-    performance: number
-    engagement: number
-    efficiency: number
-  }
+const ACTIVITY_FEED = [
+  { id:1,  time:"2 min ago",  actor:"Resume Agent",   action:"Scored 12 new applications for Senior Engineer",  status:"done",    icon:FileText,     color:"blue" },
+  { id:2,  time:"8 min ago",  actor:"Interview AI",   action:"Completed screening call with Priya Sharma (87%)", status:"done",    icon:MessageSquare,color:"purple" },
+  { id:3,  time:"14 min ago", actor:"Onboard Agent",  action:"Provisioned accounts for Marcus Johnson",           status:"done",    icon:CheckCircle,  color:"emerald" },
+  { id:4,  time:"31 min ago", actor:"Perf Agent",     action:"Sent quarterly review reminders to 42 managers",   status:"done",    icon:TrendingUp,   color:"amber" },
+  { id:5,  time:"1hr ago",    actor:"Resume Agent",   action:"Flagged duplicate application — auto-merged",       status:"alert",   icon:AlertCircle,  color:"rose" },
+  { id:6,  time:"2hr ago",    actor:"Interview AI",   action:"No-show detected — rescheduled automatically",     status:"alert",   icon:Clock,        color:"amber" },
+  { id:7,  time:"3hr ago",    actor:"Onboard Agent",  action:"Completed 5/24 onboarding steps for Sarah Chen",   status:"running", icon:Activity,     color:"blue" },
+  { id:8,  time:"5hr ago",    actor:"Interview AI",   action:"Generated 3 offer letters pending approval",        status:"done",    icon:FileText,     color:"emerald" },
+]
+
+const AGENT_MODULES = [
+  { name: "Resume Agent",    tasks: 47,  queue: 12, status: "active", latency: "120ms" },
+  { name: "Interview AI",    tasks: 23,  queue: 4,  status: "active", latency: "89ms"  },
+  { name: "Onboard Agent",   tasks: 8,   queue: 2,  status: "active", latency: "210ms" },
+  { name: "Perf Agent",      tasks: 156, queue: 0,  status: "active", latency: "55ms"  },
+  { name: "Comms Agent",     tasks: 342, queue: 18, status: "active", latency: "67ms"  },
+  { name: "Exit Agent",      tasks: 2,   queue: 1,  status: "active", latency: "180ms" },
+]
+
+interface Metric {
+  label: string; value: string; sub: string; trend: number; icon: any; color: string
 }
 
 export default function DashboardPage() {
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
-    totalEmployees: 2847,
-    activeProcesses: 156,
-    automationRate: 98.7,
-    systemHealth: "excellent",
-    todayStats: {
-      interviews: 23,
-      onboarding: 8,
-      leaves: 45,
-      communications: 342,
-    },
-    weeklyTrends: {
-      hiring: 15.2,
-      performance: 8.7,
-      engagement: 12.4,
-      efficiency: 22.1,
-    },
-  })
+  const [metrics, setMetrics] = useState<Metric[]>([
+    { label: "Total Employees",   value: "2,847", sub: "Active headcount",    trend: 4.2,  icon: Users,         color: "blue" },
+    { label: "Active Processes",  value: "156",   sub: "Running automatically",trend: 12.1, icon: Bot,           color: "purple" },
+    { label: "Automation Rate",   value: "98.7%", sub: "Fully automated",      trend: 1.3,  icon: Zap,           color: "emerald" },
+    { label: "AI Interviews",     value: "23",    sub: "Today",                trend: 8.5,  icon: MessageSquare, color: "amber" },
+    { label: "Onboardings",       value: "8",     sub: "In progress",          trend: 2.1,  icon: CheckCircle,   color: "blue" },
+    { label: "Pipeline Active",   value: "94",    sub: "Candidates tracked",   trend: 15.3, icon: GitBranch,     color: "rose" },
+  ])
+  const [lastUpdated, setLastUpdated] = useState(new Date())
+  const [loading, setLoading] = useState(false)
 
-  const [loading, setLoading] = useState(true)
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
-  const [activeTab, setActiveTab] = useState("overview")
-  const jobOptions = [
-    { id: "job-1", title: "Senior Software Engineer" },
-    { id: "job-2", title: "Product Manager" },
-  ] // TODO: Fetch real jobs for DiversityReport
-  const [profileCandidateId, setProfileCandidateId] = useState<string | null>(null)
-
-  useEffect(() => {
-    // Simulate real-time data loading
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 1500)
-
-    // Set up real-time updates
-    const updateInterval = setInterval(() => {
-      setLastUpdated(new Date())
-      // Simulate small changes in metrics
-      setMetrics((prev) => ({
-        ...prev,
-        activeProcesses: prev.activeProcesses + Math.floor(Math.random() * 5) - 2,
-        todayStats: {
-          ...prev.todayStats,
-          communications: prev.todayStats.communications + Math.floor(Math.random() * 3),
-        },
-      }))
-    }, 30000) // Update every 30 seconds
-
-    return () => {
-      clearTimeout(timer)
-      clearInterval(updateInterval)
-    }
-  }, [])
-
-  const refreshData = async () => {
+  const refresh = async () => {
     setLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/analytics/dashboard")
+      if (res.ok) {
+        const data = await res.json()
+        // Update with real data if available
+      }
+    } catch {}
     setLastUpdated(new Date())
-    setLoading(false)
+    setTimeout(() => setLoading(false), 600)
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-gray-600">Loading HR Dashboard...</p>
-          <p className="text-sm text-gray-500">Initializing all 150+ HR functions</p>
-        </div>
-      </div>
-    )
+  const COLOR_MAP: Record<string, string> = {
+    blue:   "text-blue-400",
+    purple: "text-purple-400",
+    emerald:"text-emerald-400",
+    amber:  "text-amber-400",
+    rose:   "text-rose-400",
+  }
+
+  const STATUS_DOT: Record<string, string> = {
+    done:   "bg-emerald-500",
+    alert:  "bg-amber-500",
+    running:"bg-blue-500 animate-pulse-dot",
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">HR Command Center</h1>
-            <p className="text-gray-600">Complete automation dashboard with 150+ active functions</p>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Last updated</p>
-              <p className="text-sm font-medium">{lastUpdated.toLocaleTimeString()}</p>
-            </div>
-            <Button onClick={refreshData} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-            <Badge
-              variant={metrics.systemHealth === "excellent" ? "default" : "destructive"}
-              className={metrics.systemHealth === "excellent" ? "bg-green-100 text-green-800" : ""}
-            >
-              <Activity className="h-3 w-3 mr-1" />
-              {metrics.systemHealth.toUpperCase()}
-            </Badge>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Stats */}
+    <AppShell>
       <div className="px-6 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
-              <Users className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{metrics.totalEmployees.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">Across all departments</p>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Processes</CardTitle>
-              <Bot className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{metrics.activeProcesses}</div>
-              <p className="text-xs text-muted-foreground">Running automatically</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Automation Rate</CardTitle>
-              <Zap className="h-4 w-4 text-yellow-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{metrics.automationRate}%</div>
-              <p className="text-xs text-muted-foreground">Fully automated</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">System Health</CardTitle>
-              <Shield className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600 capitalize">{metrics.systemHealth}</div>
-              <p className="text-xs text-muted-foreground">All systems operational</p>
-            </CardContent>
-          </Card>
+        {/* Page header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-white">Command Center</h1>
+            <p className="text-sm text-zinc-500 mt-0.5">
+              Updated {lastUpdated.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="agent-live text-xs text-emerald-400 font-medium">All agents live</div>
+            <button
+              onClick={refresh}
+              disabled={loading}
+              className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-700 px-3 py-1.5 rounded-md transition-colors"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
+          </div>
         </div>
 
-        {/* Today's Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Activity className="h-5 w-5 text-blue-600" />
-                <span>Today's Activity</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Video className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm">AI Interviews Conducted</span>
+        {/* Metrics — horizontal stat strip */}
+        <div className="border border-zinc-800 rounded-xl overflow-hidden mb-8">
+          <div className="flex overflow-x-auto divide-x divide-zinc-800">
+            {metrics.map((m, i) => {
+              const Icon = m.icon
+              return (
+                <div key={i} className="flex-1 min-w-[150px] px-5 py-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Icon className={`w-3.5 h-3.5 ${COLOR_MAP[m.color]}`} />
+                    <span className="text-[11px] text-zinc-500 font-medium">{m.label}</span>
                   </div>
-                  <Badge variant="secondary">{metrics.todayStats.interviews}</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <FileText className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">Onboarding Processes</span>
+                  <div className="stat-number text-2xl mb-0.5">{m.value}</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-zinc-600">{m.sub}</span>
+                    <span className={`text-[10px] font-semibold flex items-center gap-0.5 ${m.trend > 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                      {m.trend > 0 ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
+                      {Math.abs(m.trend)}%
+                    </span>
                   </div>
-                  <Badge variant="secondary">{metrics.todayStats.onboarding}</Badge>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="h-4 w-4 text-yellow-600" />
-                    <span className="text-sm">Leave Applications</span>
-                  </div>
-                  <Badge variant="secondary">{metrics.todayStats.leaves}</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <MessageSquare className="h-4 w-4 text-purple-600" />
-                    <span className="text-sm">Automated Communications</span>
-                  </div>
-                  <Badge variant="secondary">{metrics.todayStats.communications}</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <TrendingUp className="h-5 w-5 text-green-600" />
-                <span>Weekly Trends</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>Hiring Efficiency</span>
-                    <span className="text-green-600">+{metrics.weeklyTrends.hiring}%</span>
-                  </div>
-                  <Progress value={metrics.weeklyTrends.hiring + 60} className="h-2" />
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>Performance Reviews</span>
-                    <span className="text-blue-600">+{metrics.weeklyTrends.performance}%</span>
-                  </div>
-                  <Progress value={metrics.weeklyTrends.performance + 70} className="h-2" />
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>Employee Engagement</span>
-                    <span className="text-purple-600">+{metrics.weeklyTrends.engagement}%</span>
-                  </div>
-                  <Progress value={metrics.weeklyTrends.engagement + 65} className="h-2" />
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>Process Efficiency</span>
-                    <span className="text-yellow-600">+{metrics.weeklyTrends.efficiency}%</span>
-                  </div>
-                  <Progress value={metrics.weeklyTrends.efficiency + 55} className="h-2" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              )
+            })}
+          </div>
         </div>
 
-        {/* Main Dashboard Component */}
-        <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="mb-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="pipeline">Candidate Pipeline</TabsTrigger>
-            <TabsTrigger value="requisitions">Requisition Approval</TabsTrigger>
-            <TabsTrigger value="diversity">Diversity Report</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="audit">Audit Logs</TabsTrigger>
-          </TabsList>
-          <TabsContent value="overview">
-            <HRDashboard />
-          </TabsContent>
-          <TabsContent value="pipeline">
-            <CandidatePipeline onProfileOpen={setProfileCandidateId} />
-          </TabsContent>
-          <TabsContent value="requisitions">
-            <RequisitionApproval />
-          </TabsContent>
-          <TabsContent value="diversity">
-            <DiversityReport jobOptions={jobOptions} />
-          </TabsContent>
-          <TabsContent value="notifications">
-            <NotificationCenter />
-          </TabsContent>
-          <TabsContent value="audit">
-            <AuditLogViewer />
-          </TabsContent>
-        </Tabs>
+        {/* Two column layout: Activity feed + Agent status */}
+        <div className="flex gap-6">
 
-        {profileCandidateId && (
-          <CandidateProfile candidateId={profileCandidateId} onClose={() => setProfileCandidateId(null)} />
-        )}
+          {/* Activity timeline */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-zinc-300">Live Activity Feed</h2>
+              <span className="text-xs text-zinc-600">{ACTIVITY_FEED.length} events today</span>
+            </div>
+            <div className="border border-zinc-800 rounded-xl overflow-hidden">
+              <div className="timeline px-5 py-4">
+                {ACTIVITY_FEED.map((item, i) => {
+                  const Icon = item.icon
+                  const ICON_MAP: Record<string, string> = {
+                    blue: "text-blue-400 bg-blue-500/10",
+                    purple: "text-purple-400 bg-purple-500/10",
+                    emerald: "text-emerald-400 bg-emerald-500/10",
+                    amber: "text-amber-400 bg-amber-500/10",
+                    rose: "text-rose-400 bg-rose-500/10",
+                  }
+                  return (
+                    <div key={item.id} className="timeline-item">
+                      <div className={`timeline-dot ${item.status === "done" ? "done" : item.status === "running" ? "active" : ""}`} />
+                      <div className="flex items-start gap-3">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${ICON_MAP[item.color]}`}>
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-xs font-semibold text-zinc-300">{item.actor}</span>
+                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[item.status]}`} />
+                          </div>
+                          <p className="text-xs text-zinc-500 leading-relaxed">{item.action}</p>
+                        </div>
+                        <span className="text-[10px] text-zinc-700 flex-shrink-0 mt-0.5">{item.time}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
 
-        {/* System Status */}
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Shield className="h-5 w-5 text-green-600" />
-              <span>System Status - All 150+ Functions</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {[
-                { name: "Talent Acquisition", status: "operational", count: 15 },
-                { name: "Onboarding", status: "operational", count: 12 },
-                { name: "Attendance", status: "operational", count: 18 },
-                { name: "Performance", status: "operational", count: 14 },
-                { name: "Payroll", status: "operational", count: 16 },
-                { name: "Learning", status: "operational", count: 13 },
-                { name: "Compliance", status: "operational", count: 11 },
-                { name: "Communication", status: "operational", count: 19 },
-                { name: "Exit Management", status: "operational", count: 9 },
-                { name: "Analytics", status: "operational", count: 12 },
-                { name: "AI Automation", status: "operational", count: 8 },
-                { name: "Security", status: "operational", count: 3 },
-              ].map((system, index) => (
-                <div key={index} className="text-center p-3 border rounded-lg">
-                  <div className="flex items-center justify-center mb-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
+          {/* Agent status panel */}
+          <div className="w-72 flex-shrink-0">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-zinc-300">Agent Status</h2>
+              <span className="pill pill-green">6/6 Live</span>
+            </div>
+            <div className="border border-zinc-800 rounded-xl overflow-hidden">
+              {AGENT_MODULES.map((agent, i) => (
+                <div key={i} className="data-row flex-col items-start gap-2">
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
+                      <span className="text-xs font-medium text-zinc-300">{agent.name}</span>
+                    </div>
+                    <span className="text-[10px] text-zinc-600 font-mono">{agent.latency}</span>
                   </div>
-                  <h4 className="font-medium text-sm text-gray-900">{system.name}</h4>
-                  <p className="text-xs text-gray-500">{system.count} functions</p>
-                  <Badge variant="secondary" className="mt-1 text-xs bg-green-100 text-green-800">
-                    {system.status}
-                  </Badge>
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-zinc-600">Tasks:</span>
+                      <span className="text-[10px] text-zinc-400 font-mono">{agent.tasks}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-zinc-600">Queue:</span>
+                      <span className={`text-[10px] font-mono ${agent.queue > 10 ? "text-amber-400" : "text-zinc-400"}`}>{agent.queue}</span>
+                    </div>
+                  </div>
+                  <div className="progress-track w-full">
+                    <div
+                      className="progress-fill"
+                      style={{ width: `${Math.min(100, (agent.tasks / (agent.tasks + agent.queue)) * 100)}%` }}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Quick actions */}
+            <div className="mt-4">
+              <h3 className="text-xs font-semibold text-zinc-600 uppercase tracking-widest mb-2">Quick Actions</h3>
+              <div className="space-y-1.5">
+                {[
+                  { label: "Upload Resume",      href: "/dashboard/pipeline" },
+                  { label: "Start Interview",    href: "/interviews" },
+                  { label: "View Pipeline",      href: "/dashboard/pipeline" },
+                  { label: "Generate Report",    href: "/reports" },
+                ].map((a, i) => (
+                  <a
+                    key={i}
+                    href={a.href}
+                    className="flex items-center justify-between px-3 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs text-zinc-400 hover:text-white transition-colors"
+                  >
+                    {a.label}
+                    <span className="text-zinc-700">→</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
-    </div>
+    </AppShell>
   )
 }
